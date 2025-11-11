@@ -10,7 +10,7 @@ import {
   TIME_OPTIONS,
 } from "@/components/signup/onboardingOptions";
 
-type TutorFormValues = {
+type StudentFormValues = {
   subjects: string[];
   purpose: string[];
   levels: string[];
@@ -21,7 +21,7 @@ type TutorFormValues = {
   education: string;
 };
 
-const INITIAL_TUTOR_FORM: TutorFormValues = {
+const INITIAL_STUDENT_FORM: StudentFormValues = {
   subjects: [],
   purpose: [],
   levels: [],
@@ -32,11 +32,11 @@ const INITIAL_TUTOR_FORM: TutorFormValues = {
   education: "",
 };
 
-const TUTOR_FIELDS: OnboardingField<TutorFormValues>[] = [
+const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
   {
     type: "multiSelect",
     key: "subjects",
-    label: "과외 분야",
+    label: "관심 과목",
     options: SUBJECT_OPTIONS,
   },
   {
@@ -48,19 +48,19 @@ const TUTOR_FIELDS: OnboardingField<TutorFormValues>[] = [
   {
     type: "multiSelect",
     key: "levels",
-    label: "수강생 레벨",
+    label: "현재 실력",
     options: LEVEL_OPTIONS,
   },
   {
     type: "multiSelect",
     key: "teachingMethod",
-    label: "수업 방식",
+    label: "희망 수업 방식",
     options: METHOD_OPTIONS,
   },
   {
     type: "range",
     key: "desiredPrice",
-    label: "시간 당 희망 수업 가격",
+    label: "시간 당 희망 수업 예산",
     min: 10000,
     max: 300000,
     step: 5000,
@@ -70,56 +70,57 @@ const TUTOR_FIELDS: OnboardingField<TutorFormValues>[] = [
   {
     type: "multiSelect",
     key: "days",
-    label: "수업 요일",
+    label: "수업 가능 요일",
     options: DAY_OPTIONS,
   },
   {
     type: "multiSelect",
     key: "timeSlots",
-    label: "수업 시간대",
+    label: "수업 가능 시간대",
     options: TIME_OPTIONS,
   },
   {
     type: "textarea",
     key: "education",
-    label: "학력",
-    placeholder: "최종 학력을 입력해주세요",
+    label: "현재 학력/상태",
+    placeholder: "현재 학력이나 상황을 입력해주세요",
     rows: 4,
   },
 ];
 
-const validateTutorForm = (form: TutorFormValues) => {
+const validateStudentForm = (form: StudentFormValues) => {
   if (form.subjects.length === 0) {
-    return "과외 분야를 최소 한 가지 이상 선택해주세요.";
+    return "관심 과목을 최소 한 가지 이상 선택해주세요.";
   }
 
   if (form.teachingMethod.length === 0) {
-    return "수업 방식을 선택해주세요.";
+    return "희망 수업 방식을 선택해주세요.";
   }
 
   if (!form.desiredPrice) {
-    return "희망 수업 가격을 입력해주세요.";
+    return "희망 수업 예산을 설정해주세요.";
   }
 
   return null;
 };
 
-const handleTutorSubmit = async (form: TutorFormValues) => {
-  console.log("튜터 온보딩 제출:", form);
+const handleStudentSubmit = async (form: StudentFormValues) => {
+  console.log("학생 온보딩 제출:", form);
   await new Promise((resolve) => setTimeout(resolve, 600));
 };
 
-export function TutorOnboardingForm() {
+export function StudentOnboardingForm() {
   return (
     <OnboardingForm
-      title="튜터 정보 입력"
-      description="튜터 매칭을 위해 필요한 정보를 입력해주세요. 입력한 내용은 언제든지 수정할 수 있어요."
-      fields={TUTOR_FIELDS}
-      initialValues={INITIAL_TUTOR_FORM}
-      validate={validateTutorForm}
-      onSubmit={handleTutorSubmit}
+      title="학생 정보 입력"
+      description="원하는 튜터를 찾기 위해 필요한 정보를 입력해주세요. 입력한 내용은 언제든지 수정할 수 있어요."
+      fields={STUDENT_FIELDS}
+      initialValues={INITIAL_STUDENT_FORM}
+      validate={validateStudentForm}
+      onSubmit={handleStudentSubmit}
+      submitLabel="정보 저장하기"
+      loadingLabel="저장 중..."
     />
   );
 }
-
 
