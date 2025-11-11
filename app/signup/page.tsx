@@ -4,7 +4,7 @@ import SignUpForm from "@/components/signup/SignUpForm";
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-start justify-center pt-4">
       <div className="flex w-[1200px] bg-white rounded-2xl shadow-xl border border-gray-300 overflow-hidden">
         {/* 왼쪽 영역 */}
         <div className="w-1/2 p-16 text-white bg-[#8055e1]">
