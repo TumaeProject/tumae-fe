@@ -15,6 +15,9 @@ export default function SignUpForm() {
     agreeTerms: false,
     agreePrivacy: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -22,17 +25,79 @@ export default function SignUpForm() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    setErrorMessage(null);
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("폼 제출:", form);
-    // TODO: API 연결해서 form 데이터 전달
+
+    if (!form.name || !form.email || !form.password || !form.role) {
+      setErrorMessage("필수 항목을 모두 입력해주세요.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setErrorMessage("비밀번호가 서로 일치해야 합니다.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch("/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password_hash: form.password,
+          role: form.role,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message =
+          typeof data?.message === "string"
+            ? data.message
+            : "회원가입에 실패했어요. 다시 시도해주세요.";
+        setErrorMessage(message);
+        return;
+      }
+
+      setSuccessMessage("회원가입이 완료되었어요!");
+      setForm((prev) => ({
+        ...prev,
+        password: "",
+        confirmPassword: "",
+      }));
+    } catch (error) {
+      console.error("회원가입 요청 실패:", error);
+      setErrorMessage("요청을 처리하지 못했어요. 네트워크 상태를 확인해주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <h2 className="text-2xl font-bold mb-4">회원 가입</h2>
+
+      {errorMessage ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      ) : null}
+      {successMessage ? (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-600">
+          {successMessage}
+        </div>
+      ) : null}
 
       {/* 이름 */}
       <FormInput
@@ -70,6 +135,11 @@ export default function SignUpForm() {
           value={form.confirmPassword}
           placeholder="비밀번호 확인"
           onChange={handleChange}
+          errorMessage={
+            form.confirmPassword.length > 0 && form.password !== form.confirmPassword
+              ? "비밀번호가 일치하지 않습니다."
+              : undefined
+          }
         />
       </div>
 
@@ -82,9 +152,10 @@ export default function SignUpForm() {
       {/* 제출 버튼 */}
       <button
         type="submit"
-        className="w-full bg-[#8055e1] text-white py-3 rounded-xl font-bold"
+        className="w-full bg-[#8055e1] text-white py-3 rounded-xl font-bold disabled:opacity-60"
+        disabled={isSubmitting}
       >
-        가입하기
+        {isSubmitting ? "가입 중..." : "가입하기"}
       </button>
     </form>
   );
