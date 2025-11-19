@@ -65,6 +65,8 @@ export function LoginForm() {
 
       // 로그인 성공 시 홈 페이지로 리다이렉트
       router.push("/");
+
+
     } catch (error) {
       console.error("로그인 요청 실패:", error);
       setErrorMessage("요청을 처리하지 못했어요. 네트워크 상태를 확인해주세요.");
