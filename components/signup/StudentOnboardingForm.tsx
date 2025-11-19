@@ -4,10 +4,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { OnboardingForm, type OnboardingField } from "@/components/signup/OnboardingForm";
 import {
   DAY_OPTIONS,
+  LESSON_TYPE_ID_MAP,
+  LEVEL_ID_MAP,
   LEVEL_OPTIONS,
   METHOD_OPTIONS,
+  PURPOSE_ID_MAP,
   PURPOSE_OPTIONS,
+  SUBJECT_ID_MAP,
   SUBJECT_OPTIONS,
+  TIME_BAND_ID_MAP,
   TIME_OPTIONS,
 } from "@/components/signup/onboardingOptions";
 
@@ -29,7 +34,7 @@ const INITIAL_STUDENT_FORM: StudentFormValues = {
   levels: [],
   teachingMethod: [],
   preferredPriceMin: "10000",
-  preferredPriceMax: "300000",
+  preferredPriceMax: "150000",
   days: [],
   timeSlots: [],
   education: "",
@@ -65,20 +70,20 @@ const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
     key: "preferredPriceMin",
     label: "시간 당 최소 희망 수업 예산",
     min: 10000,
-    max: 300000,
+    max: 150000,
     step: 5000,
     minLabel: "10,000원",
-    maxLabel: "300,000원",
+    maxLabel: "150,000원",
   },
   {
     type: "range",
     key: "preferredPriceMax",
     label: "시간 당 최대 희망 수업 예산",
     min: 10000,
-    max: 300000,
+    max: 150000,
     step: 5000,
     minLabel: "10,000원",
-    maxLabel: "300,000원",
+    maxLabel: "150,000원",
   },
   {
     type: "multiSelect",
@@ -129,14 +134,9 @@ const dayToWeekday = (day: string): number => {
   return DAY_OPTIONS.indexOf(day);
 };
 
-// 시간대를 time_band_id로 변환
+// 시간대를 time_band_id로 변환 (실제 DB ID 사용)
 const timeSlotToTimeBandId = (timeSlot: string): number => {
-  const timeMap: Record<string, number> = {
-    "오전 (09-12시)": 1,
-    "오후 (13-17시)": 2,
-    "저녁 (18-22시)": 3,
-  };
-  return timeMap[timeSlot] || 0;
+  return TIME_BAND_ID_MAP[timeSlot] || 0;
 };
 
 export function StudentOnboardingForm() {
@@ -164,12 +164,23 @@ export function StudentOnboardingForm() {
         });
       });
 
-      // 문자열 배열을 정수 배열로 변환 (인덱스 기반)
-      // TODO: 백엔드 API에서 실제 ID 매핑이 필요할 수 있음
-      const studentSubjects = form.subjects.map((_, index) => index);
-      const studentGoals = form.purpose.map((_, index) => index);
-      const studentLessonTypes = form.teachingMethod.map((_, index) => index);
-      const studentSkillLevels = form.levels.map((_, index) => index);
+      // 문자열 선택 값을 백엔드에서 사용하는 ID로 매핑
+      // 과목은 실제 DB ID로 매핑
+      const studentSubjects = form.subjects
+        .map((subject) => SUBJECT_ID_MAP[subject])
+        .filter((id): id is number => id !== undefined && id > 0);
+      // 목적은 실제 DB ID로 매핑
+      const studentGoals = form.purpose
+        .map((goal) => PURPOSE_ID_MAP[goal])
+        .filter((id): id is number => id !== undefined && id > 0);
+      // 수업 방식은 실제 DB ID로 매핑
+      const studentLessonTypes = form.teachingMethod
+        .map((method) => LESSON_TYPE_ID_MAP[method])
+        .filter((id): id is number => id !== undefined && id > 0);
+      // 레벨은 실제 DB ID로 매핑
+      const studentSkillLevels = form.levels
+        .map((level) => LEVEL_ID_MAP[level])
+        .filter((id): id is number => id !== undefined && id > 0);
 
       const minPrice = parseInt(form.preferredPriceMin, 10);
       const maxPrice = parseInt(form.preferredPriceMax, 10);

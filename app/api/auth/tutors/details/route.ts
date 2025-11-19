@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiUrl } from "@/lib/api";
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const response = await fetch(getApiUrl("/auth/signup"), {
-      method: "POST",
+    const response = await fetch(getApiUrl("/auth/tutors/details"), {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     // 에러 응답 로깅
     if (!response.ok) {
-      console.error("회원가입 API 에러 응답:", {
+      console.error("튜터 상세 정보 업데이트 API 에러 응답:", {
         status: response.status,
         data: JSON.stringify(data, null, 2),
       });
@@ -27,10 +27,11 @@ export async function POST(request: NextRequest) {
       status: response.status,
     });
   } catch (error) {
-    console.error("회원가입 API 프록시 오류:", error);
+    console.error("튜터 상세 정보 업데이트 API 프록시 오류:", error);
     return NextResponse.json(
       { message: "서버 오류가 발생했습니다." },
       { status: 500 }
     );
   }
 }
+

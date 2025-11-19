@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from "@/lib/api";
+import { getApiUrl } from "@/lib/api";
 
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // 요청 데이터 로깅 (디버깅용)
-    console.log("학생 상세 정보 업데이트 요청:", JSON.stringify(body, null, 2));
-
-    const response = await fetch(`${API_BASE_URL}/auth/students/details`, {
+    const response = await fetch(getApiUrl("/auth/students/details"), {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

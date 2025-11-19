@@ -4,7 +4,7 @@
  * 없으면 기본값으로 Render 서버 URL을 사용합니다.
  */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://tumae-api.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://tumae-jeonga.onrender.com";
 
 /**
  * API 엔드포인트 URL 생성

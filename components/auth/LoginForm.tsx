@@ -56,7 +56,7 @@ export function LoginForm() {
         return;
       }
 
-      // 로그인 성공 후 학생 찾기 페이지로 리다이렉트
+      // TODO: 로그인 성공 후 페이지 리다이렉트 (튜터/학생 구분)
       router.push("/students");
     } catch (error) {
       console.error("로그인 요청 실패:", error);
