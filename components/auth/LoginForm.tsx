@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { FormInput } from "@/components/signup/FormInput";
 
 type LoginFormState = {
@@ -14,6 +15,7 @@ const INITIAL_FORM_STATE: LoginFormState = {
 };
 
 export function LoginForm() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginFormState>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function LoginForm() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +47,14 @@ export function LoginForm() {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          // JSON 파싱 실패 시 (HTML 응답 등)
+          setErrorMessage("로그인에 실패했어요. 다시 시도해주세요.");
+          return;
+        }
         const message =
           typeof data?.message === "string"
             ? data.message
@@ -54,7 +63,8 @@ export function LoginForm() {
         return;
       }
 
-      // TODO: 로그인 성공 후 리다이렉트 처리
+      // 로그인 성공 시 홈 페이지로 리다이렉트
+      router.push("/");
     } catch (error) {
       console.error("로그인 요청 실패:", error);
       setErrorMessage("요청을 처리하지 못했어요. 네트워크 상태를 확인해주세요.");
