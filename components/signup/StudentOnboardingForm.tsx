@@ -33,8 +33,8 @@ const INITIAL_STUDENT_FORM: StudentFormValues = {
   purpose: [],
   levels: [],
   teachingMethod: [],
-  preferredPriceMin: "10000",
-  preferredPriceMax: "150000",
+  preferredPriceMin: "20000",
+  preferredPriceMax: "50000",
   days: [],
   timeSlots: [],
   education: "",
@@ -69,21 +69,21 @@ const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
     type: "range",
     key: "preferredPriceMin",
     label: "시간 당 최소 희망 수업 예산",
-    min: 10000,
-    max: 150000,
+    min: 20000,
+    max: 50000,
     step: 5000,
-    minLabel: "10,000원",
-    maxLabel: "150,000원",
+    minLabel: "20,000원",
+    maxLabel: "50,000원",
   },
   {
     type: "range",
     key: "preferredPriceMax",
     label: "시간 당 최대 희망 수업 예산",
-    min: 10000,
-    max: 150000,
+    min: 20000,
+    max: 50000,
     step: 5000,
-    minLabel: "10,000원",
-    maxLabel: "150,000원",
+    minLabel: "20,000원",
+    maxLabel: "50,000원",
   },
   {
     type: "multiSelect",
@@ -124,6 +124,15 @@ const validateStudentForm = (form: StudentFormValues) => {
 
   if (minPrice > maxPrice) {
     return "최소 예산은 최대 예산보다 작거나 같아야 합니다.";
+  }
+
+  // 백엔드 제약 조건: 20000 ~ 50000
+  if (minPrice < 20000 || minPrice > 50000) {
+    return "최소 예산은 20,000원 이상 50,000원 이하여야 합니다.";
+  }
+
+  if (maxPrice < 20000 || maxPrice > 50000) {
+    return "최대 예산은 20,000원 이상 50,000원 이하여야 합니다.";
   }
 
   return null;
