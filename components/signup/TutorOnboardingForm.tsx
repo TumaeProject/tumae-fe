@@ -21,7 +21,8 @@ type TutorFormValues = {
   purpose: string[];
   levels: string[];
   teachingMethod: string[];
-  desiredPrice: string;
+  preferredPriceMin: string;
+  preferredPriceMax: string;
   days: string[];
   timeSlots: string[];
   education: string;
@@ -32,7 +33,8 @@ const INITIAL_TUTOR_FORM: TutorFormValues = {
   purpose: [],
   levels: [],
   teachingMethod: [],
-  desiredPrice: "10000",
+  preferredPriceMin: "20000",
+  preferredPriceMax: "50000",
   days: [],
   timeSlots: [],
   education: "",
@@ -65,13 +67,23 @@ const TUTOR_FIELDS: OnboardingField<TutorFormValues>[] = [
   },
   {
     type: "range",
-    key: "desiredPrice",
-    label: "시간 당 희망 수업 가격",
-    min: 10000,
-    max: 300000,
+    key: "preferredPriceMin",
+    label: "시간 당 최소 희망 수업 가격",
+    min: 20000,
+    max: 50000,
     step: 5000,
-    minLabel: "10,000원",
-    maxLabel: "300,000원",
+    minLabel: "20,000원",
+    maxLabel: "50,000원",
+  },
+  {
+    type: "range",
+    key: "preferredPriceMax",
+    label: "시간 당 최대 희망 수업 가격",
+    min: 20000,
+    max: 50000,
+    step: 5000,
+    minLabel: "20,000원",
+    maxLabel: "50,000원",
   },
   {
     type: "multiSelect",
@@ -103,8 +115,24 @@ const validateTutorForm = (form: TutorFormValues) => {
     return "수업 방식을 선택해주세요.";
   }
 
-  if (!form.desiredPrice) {
-    return "희망 수업 가격을 입력해주세요.";
+  if (!form.preferredPriceMin || !form.preferredPriceMax) {
+    return "희망 수업 가격을 설정해주세요.";
+  }
+
+  const minPrice = parseInt(form.preferredPriceMin, 10);
+  const maxPrice = parseInt(form.preferredPriceMax, 10);
+
+  if (minPrice > maxPrice) {
+    return "최소 가격은 최대 가격보다 작거나 같아야 합니다.";
+  }
+
+  // 백엔드 제약 조건: 20000 ~ 50000
+  if (minPrice < 20000 || minPrice > 50000) {
+    return "최소 가격은 20,000원 이상 50,000원 이하여야 합니다.";
+  }
+
+  if (maxPrice < 20000 || maxPrice > 50000) {
+    return "최대 가격은 20,000원 이상 50,000원 이하여야 합니다.";
   }
 
   return null;
@@ -146,10 +174,23 @@ export function TutorOnboardingForm() {
       });
 
       // 문자열 선택 값을 백엔드에서 사용하는 ID로 매핑
-      // 과목은 실제 DB ID로 매핑
+      // 레벨은 실제 DB ID로 매핑 (각 과목에 적용할 스킬 레벨)
+      const tutorSkillLevels = form.levels
+        .map((level) => LEVEL_ID_MAP[level])
+        .filter((id): id is number => id !== undefined && id > 0);
+      
+      // 선택된 레벨 중 첫 번째를 사용 (또는 모든 레벨을 각 과목에 적용)
+      const skillLevelId = tutorSkillLevels[0] || 0;
+      
+      // 과목은 객체 배열로 변환 (tutor_subjects는 {subject_id: number, skill_level_id: number} 형식)
       const tutorSubjects = form.subjects
         .map((subject) => SUBJECT_ID_MAP[subject])
-        .filter((id): id is number => id !== undefined && id > 0);
+        .filter((id): id is number => id !== undefined && id > 0)
+        .map((subjectId) => ({ 
+          subject_id: subjectId,
+          skill_level_id: skillLevelId
+        }));
+      
       // 목적은 실제 DB ID로 매핑
       const tutorGoals = form.purpose
         .map((goal) => PURPOSE_ID_MAP[goal])
@@ -158,24 +199,20 @@ export function TutorOnboardingForm() {
       const tutorLessonTypes = form.teachingMethod
         .map((method) => LESSON_TYPE_ID_MAP[method])
         .filter((id): id is number => id !== undefined && id > 0);
-      // 레벨은 실제 DB ID로 매핑
-      const tutorSkillLevels = form.levels
-        .map((level) => LEVEL_ID_MAP[level])
-        .filter((id): id is number => id !== undefined && id > 0);
 
-      const price = parseInt(form.desiredPrice, 10);
+      const minPrice = parseInt(form.preferredPriceMin, 10);
+      const maxPrice = parseInt(form.preferredPriceMax, 10);
       
       // API 요청 데이터 구성
       const requestData = {
         user_id: parseInt(userId, 10),
         tutor_subjects: tutorSubjects,
-        tutor_goals: tutorGoals,
         tutor_lesson_types: tutorLessonTypes,
-        tutor_regions: [], // TODO: 지역 정보가 필요하면 추가
         tutor_availabilities: tutorAvailabilities,
-        desired_price: price,
+        tutor_goals: tutorGoals,
         tutor_skill_levels: tutorSkillLevels,
-        education: form.education,
+        hourly_rate_min: minPrice,
+        hourly_rate_max: maxPrice,
       };
 
       console.log("튜터 온보딩 API 요청 데이터:", requestData);
