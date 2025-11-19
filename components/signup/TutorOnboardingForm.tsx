@@ -174,10 +174,23 @@ export function TutorOnboardingForm() {
       });
 
       // 문자열 선택 값을 백엔드에서 사용하는 ID로 매핑
-      // 과목은 실제 DB ID로 매핑
+      // 레벨은 실제 DB ID로 매핑 (각 과목에 적용할 스킬 레벨)
+      const tutorSkillLevels = form.levels
+        .map((level) => LEVEL_ID_MAP[level])
+        .filter((id): id is number => id !== undefined && id > 0);
+      
+      // 선택된 레벨 중 첫 번째를 사용 (또는 모든 레벨을 각 과목에 적용)
+      const skillLevelId = tutorSkillLevels[0] || 0;
+      
+      // 과목은 객체 배열로 변환 (tutor_subjects는 {subject_id: number, skill_level_id: number} 형식)
       const tutorSubjects = form.subjects
         .map((subject) => SUBJECT_ID_MAP[subject])
-        .filter((id): id is number => id !== undefined && id > 0);
+        .filter((id): id is number => id !== undefined && id > 0)
+        .map((subjectId) => ({ 
+          subject_id: subjectId,
+          skill_level_id: skillLevelId
+        }));
+      
       // 목적은 실제 DB ID로 매핑
       const tutorGoals = form.purpose
         .map((goal) => PURPOSE_ID_MAP[goal])
@@ -185,10 +198,6 @@ export function TutorOnboardingForm() {
       // 수업 방식은 실제 DB ID로 매핑
       const tutorLessonTypes = form.teachingMethod
         .map((method) => LESSON_TYPE_ID_MAP[method])
-        .filter((id): id is number => id !== undefined && id > 0);
-      // 레벨은 실제 DB ID로 매핑
-      const tutorSkillLevels = form.levels
-        .map((level) => LEVEL_ID_MAP[level])
         .filter((id): id is number => id !== undefined && id > 0);
 
       const minPrice = parseInt(form.preferredPriceMin, 10);
@@ -198,14 +207,12 @@ export function TutorOnboardingForm() {
       const requestData = {
         user_id: parseInt(userId, 10),
         tutor_subjects: tutorSubjects,
-        tutor_goals: tutorGoals,
         tutor_lesson_types: tutorLessonTypes,
-        tutor_regions: [], // TODO: 지역 정보가 필요하면 추가
         tutor_availabilities: tutorAvailabilities,
-        preferred_price_min: minPrice,
-        preferred_price_max: maxPrice,
+        tutor_goals: tutorGoals,
         tutor_skill_levels: tutorSkillLevels,
-        education: form.education,
+        hourly_rate_min: minPrice,
+        hourly_rate_max: maxPrice,
       };
 
       console.log("튜터 온보딩 API 요청 데이터:", requestData);
