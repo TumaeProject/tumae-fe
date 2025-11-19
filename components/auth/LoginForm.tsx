@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { FormInput } from "@/components/signup/FormInput";
 
 type LoginFormState = {
@@ -14,6 +15,7 @@ const INITIAL_FORM_STATE: LoginFormState = {
 };
 
 export function LoginForm() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginFormState>(INITIAL_FORM_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export function LoginForm() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +56,8 @@ export function LoginForm() {
         return;
       }
 
-      // TODO: 로그인 성공 후 리다이렉트 처리
+      // TODO: 로그인 성공 후 페이지 리다이렉트 (튜터/학생 구분)
+      router.push("/students");
     } catch (error) {
       console.error("로그인 요청 실패:", error);
       setErrorMessage("요청을 처리하지 못했어요. 네트워크 상태를 확인해주세요.");
