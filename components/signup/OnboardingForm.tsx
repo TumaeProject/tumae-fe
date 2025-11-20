@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { FormTextarea } from "@/components/signup/FormTextarea";
 
 type KeysMatching<FormValues, Value> = {
@@ -52,6 +52,8 @@ type OnboardingFormProps<FormValues extends BaseFormValues> = {
   successMessage?: string;
   validate?: (values: FormValues) => string | null;
   onSubmit?: (values: FormValues) => Promise<void> | void;
+  children?: ReactNode;
+  renderCustomField?: (formValues: FormValues, setFormValues: (values: FormValues) => void) => ReactNode;
 };
 
 export function OnboardingForm<FormValues extends BaseFormValues>({
@@ -64,6 +66,8 @@ export function OnboardingForm<FormValues extends BaseFormValues>({
   successMessage: successMessageProp = "정보가 성공적으로 저장되었어요!",
   validate,
   onSubmit,
+  children,
+  renderCustomField,
 }: OnboardingFormProps<FormValues>) {
   const [formValues, setFormValues] = useState<FormValues>(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -223,7 +227,21 @@ export function OnboardingForm<FormValues extends BaseFormValues>({
         </div>
       ) : null}
 
-      {fields.map((field) => renderField(field))}
+      {fields.map((field, index) => {
+        const fieldElement = renderField(field);
+        // timeSlots 필드 다음에 커스텀 필드 삽입
+        if (field.key === "timeSlots" && renderCustomField) {
+          return (
+            <div key={String(field.key)} className="space-y-8">
+              {fieldElement}
+              {renderCustomField(formValues, setFormValues)}
+            </div>
+          );
+        }
+        return fieldElement;
+      })}
+
+      {children}
 
       <button
         type="submit"
