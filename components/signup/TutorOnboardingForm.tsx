@@ -3,18 +3,36 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { OnboardingForm, type OnboardingField } from "@/components/signup/OnboardingForm";
 import {
+  BUSAN_DISTRICT_ID_MAP,
+  CHUNGBUK_DISTRICT_ID_MAP,
+  CHUNGNAM_DISTRICT_ID_MAP,
+  DAEJEON_DISTRICT_ID_MAP,
+  DAEGU_DISTRICT_ID_MAP,
   DAY_OPTIONS,
+  GANGWON_DISTRICT_ID_MAP,
+  GYEONGBUK_DISTRICT_ID_MAP,
+  GYEONGNAM_DISTRICT_ID_MAP,
+  GYEONGGI_DISTRICT_ID_MAP,
+  GWANGJU_DISTRICT_ID_MAP,
+  INCHEON_DISTRICT_ID_MAP,
+  JEJU_DISTRICT_ID_MAP,
+  JEONBUK_DISTRICT_ID_MAP,
+  JEONNAM_DISTRICT_ID_MAP,
   LESSON_TYPE_ID_MAP,
   LEVEL_ID_MAP,
   LEVEL_OPTIONS,
   METHOD_OPTIONS,
   PURPOSE_ID_MAP,
   PURPOSE_OPTIONS,
+  REGION_ID_MAP,
+  SEOUL_DISTRICT_ID_MAP,
   SUBJECT_ID_MAP,
   SUBJECT_OPTIONS,
   TIME_BAND_ID_MAP,
   TIME_OPTIONS,
+  ULSAN_DISTRICT_ID_MAP,
 } from "@/components/signup/onboardingOptions";
+import { RegionSelector } from "@/components/signup/RegionSelector";
 
 type TutorFormValues = {
   subjects: string[];
@@ -25,6 +43,7 @@ type TutorFormValues = {
   preferredPriceMax: string;
   days: string[];
   timeSlots: string[];
+  regions: string[];
   education: string;
 };
 
@@ -37,6 +56,7 @@ const INITIAL_TUTOR_FORM: TutorFormValues = {
   preferredPriceMax: "50000",
   days: [],
   timeSlots: [],
+  regions: [],
   education: "",
 };
 
@@ -200,6 +220,88 @@ export function TutorOnboardingForm() {
         .map((method) => LESSON_TYPE_ID_MAP[method])
         .filter((id): id is number => id !== undefined && id > 0);
 
+      // 지역을 DB ID로 매핑하여 정수 배열로 변환
+      // 형태: "서울특별시 종로구" -> ID 추출
+      const tutorRegions: number[] = form.regions
+        .map((region) => {
+          // "서울특별시 종로구" 형식에서 구 ID 추출
+          const parts = region.split(" ");
+          if (parts.length === 2) {
+            const [sido, district] = parts;
+            // 서울의 경우
+            if (sido === "서울특별시" && SEOUL_DISTRICT_ID_MAP[district]) {
+              return SEOUL_DISTRICT_ID_MAP[district];
+            }
+            // 부산의 경우
+            if (sido === "부산광역시" && BUSAN_DISTRICT_ID_MAP[district]) {
+              return BUSAN_DISTRICT_ID_MAP[district];
+            }
+            // 대구의 경우
+            if (sido === "대구광역시" && DAEGU_DISTRICT_ID_MAP[district]) {
+              return DAEGU_DISTRICT_ID_MAP[district];
+            }
+            // 인천의 경우
+            if (sido === "인천광역시" && INCHEON_DISTRICT_ID_MAP[district]) {
+              return INCHEON_DISTRICT_ID_MAP[district];
+            }
+            // 광주의 경우
+            if (sido === "광주광역시" && GWANGJU_DISTRICT_ID_MAP[district]) {
+              return GWANGJU_DISTRICT_ID_MAP[district];
+            }
+            // 대전의 경우
+            if (sido === "대전광역시" && DAEJEON_DISTRICT_ID_MAP[district]) {
+              return DAEJEON_DISTRICT_ID_MAP[district];
+            }
+            // 울산의 경우
+            if (sido === "울산광역시" && ULSAN_DISTRICT_ID_MAP[district]) {
+              return ULSAN_DISTRICT_ID_MAP[district];
+            }
+            // 경기의 경우
+            if (sido === "경기도" && GYEONGGI_DISTRICT_ID_MAP[district]) {
+              return GYEONGGI_DISTRICT_ID_MAP[district];
+            }
+            // 강원의 경우
+            if (sido === "강원특별자치도" && GANGWON_DISTRICT_ID_MAP[district]) {
+              return GANGWON_DISTRICT_ID_MAP[district];
+            }
+            // 충북의 경우
+            if (sido === "충청북도" && CHUNGBUK_DISTRICT_ID_MAP[district]) {
+              return CHUNGBUK_DISTRICT_ID_MAP[district];
+            }
+            // 충남의 경우
+            if (sido === "충청남도" && CHUNGNAM_DISTRICT_ID_MAP[district]) {
+              return CHUNGNAM_DISTRICT_ID_MAP[district];
+            }
+            // 전북의 경우
+            if (sido === "전라북도" && JEONBUK_DISTRICT_ID_MAP[district]) {
+              return JEONBUK_DISTRICT_ID_MAP[district];
+            }
+            // 전남의 경우
+            if (sido === "전라남도" && JEONNAM_DISTRICT_ID_MAP[district]) {
+              return JEONNAM_DISTRICT_ID_MAP[district];
+            }
+            // 경북의 경우
+            if (sido === "경상북도" && GYEONGBUK_DISTRICT_ID_MAP[district]) {
+              return GYEONGBUK_DISTRICT_ID_MAP[district];
+            }
+            // 경남의 경우
+            if (sido === "경상남도" && GYEONGNAM_DISTRICT_ID_MAP[district]) {
+              return GYEONGNAM_DISTRICT_ID_MAP[district];
+            }
+            // 제주의 경우
+            if (sido === "제주특별자치도" && JEJU_DISTRICT_ID_MAP[district]) {
+              return JEJU_DISTRICT_ID_MAP[district];
+            }
+            // 다른 시/도는 추후 추가
+          }
+          // 시/도만 선택된 경우
+          if (REGION_ID_MAP[region]) {
+            return REGION_ID_MAP[region];
+          }
+          return null;
+        })
+        .filter((id): id is number => id !== null && id > 0);
+
       const minPrice = parseInt(form.preferredPriceMin, 10);
       const maxPrice = parseInt(form.preferredPriceMax, 10);
       
@@ -211,8 +313,10 @@ export function TutorOnboardingForm() {
         tutor_availabilities: tutorAvailabilities,
         tutor_goals: tutorGoals,
         tutor_skill_levels: tutorSkillLevels,
+        tutor_regions: tutorRegions,
         hourly_rate_min: minPrice,
         hourly_rate_max: maxPrice,
+        education_level: form.education || "",
       };
 
       console.log("튜터 온보딩 API 요청 데이터:", requestData);
@@ -271,6 +375,17 @@ export function TutorOnboardingForm() {
       onSubmit={handleTutorSubmit}
       submitLabel="정보 저장하기"
       loadingLabel="저장 중..."
+      renderCustomField={(formValues, setFormValues) => (
+        <section className="mt-8 space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">희망 지역</h3>
+          <RegionSelector
+            selectedRegions={(formValues.regions as string[]) || []}
+            onChange={(regions) => {
+              setFormValues({ ...formValues, regions } as TutorFormValues);
+            }}
+          />
+        </section>
+      )}
     />
   );
 }
