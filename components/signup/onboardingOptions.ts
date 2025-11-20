@@ -166,6 +166,20 @@ export const REGION_OPTIONS = [
  * 16: 경상남도
  * 17: 제주특별자치도
  */
+/**
+ * 학생 연령대/학력 옵션
+ */
+export const STUDENT_AGES = [
+  { id: 1, name: "초등학생(저학년)" },
+  { id: 2, name: "초등학생(고학년)" },
+  { id: 3, name: "중학생" },
+  { id: 4, name: "고등학생" },
+  { id: 5, name: "대학생" },
+  { id: 6, name: "20대" },
+  { id: 7, name: "30대" },
+  { id: 8, name: "기타" },
+];
+
 export const REGION_ID_MAP: Record<string, number> = {
   "서울특별시": 1,
   "부산광역시": 2,

@@ -27,6 +27,7 @@ import {
   REGION_ID_MAP,
   REGION_OPTIONS,
   SEOUL_DISTRICT_ID_MAP,
+  STUDENT_AGES,
   SUBJECT_ID_MAP,
   SUBJECT_OPTIONS,
   TIME_BAND_ID_MAP,
@@ -119,11 +120,11 @@ const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
     options: TIME_OPTIONS,
   },
   {
-    type: "textarea",
+    type: "select",
     key: "education",
     label: "현재 학력/상태",
-    placeholder: "현재 학력이나 상황을 입력해주세요",
-    rows: 4,
+    options: STUDENT_AGES,
+    placeholder: "학력을 선택해주세요",
   },
 ];
 
@@ -297,6 +298,9 @@ export function StudentOnboardingForm() {
       const minPrice = parseInt(form.preferredPriceMin, 10);
       const maxPrice = parseInt(form.preferredPriceMax, 10);
       
+      // student_age_id 추출 (education 필드에서)
+      const studentAgeId = form.education ? parseInt(form.education, 10) : null;
+
       // API 요청 데이터 구성
       const requestData = {
         user_id: parseInt(userId, 10),
@@ -308,6 +312,7 @@ export function StudentOnboardingForm() {
         preferred_price_min: minPrice,
         preferred_price_max: maxPrice,
         student_skill_levels: studentSkillLevels,
+        ...(studentAgeId && { student_age_id: studentAgeId }),
       };
 
       console.log("학생 온보딩 API 요청 데이터:", requestData);

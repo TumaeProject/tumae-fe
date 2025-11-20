@@ -35,10 +35,19 @@ type TextareaField<FormValues extends Record<string, unknown>> = {
   rows?: number;
 };
 
+type SelectField<FormValues extends Record<string, unknown>> = {
+  type: "select";
+  key: KeysMatching<FormValues, string>;
+  label: string;
+  options: Array<{ id: number; name: string }>;
+  placeholder?: string;
+};
+
 export type OnboardingField<FormValues extends Record<string, unknown>> =
   | MultiSelectField<FormValues>
   | RangeField<FormValues>
-  | TextareaField<FormValues>;
+  | TextareaField<FormValues>
+  | SelectField<FormValues>;
 
 type BaseFormValues = Record<string, string | string[]>;
 
@@ -91,6 +100,12 @@ export function OnboardingForm<FormValues extends BaseFormValues>({
 
   const handleTextareaChange =
     (key: KeysMatching<FormValues, string>) => (event: ChangeEvent<HTMLTextAreaElement>) => {
+      const { value } = event.target;
+      setFormValues((prev) => ({ ...prev, [key]: value }) as FormValues);
+    };
+
+  const handleSelectChange =
+    (key: KeysMatching<FormValues, string>) => (event: ChangeEvent<HTMLSelectElement>) => {
       const { value } = event.target;
       setFormValues((prev) => ({ ...prev, [key]: value }) as FormValues);
     };
@@ -176,6 +191,34 @@ export function OnboardingForm<FormValues extends BaseFormValues>({
           rows={rows ?? 4}
           onChange={handleTextareaChange(key)}
         />
+      );
+    }
+
+    if (field.type === "select") {
+      const { key, label, options, placeholder } = field;
+      const value = (formValues[key] as string) ?? "";
+
+      return (
+        <section key={String(key)} className="space-y-2">
+          <label className="block text-lg font-semibold text-gray-900">{label}</label>
+          <select
+            name={String(key)}
+            value={value}
+            onChange={handleSelectChange(key)}
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 transition focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+          >
+            {placeholder && (
+              <option value="" disabled>
+                {placeholder}
+              </option>
+            )}
+            {options.map((option) => (
+              <option key={option.id} value={String(option.id)}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </section>
       );
     }
 
