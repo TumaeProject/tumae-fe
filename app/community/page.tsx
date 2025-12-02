@@ -163,7 +163,7 @@ export default function CommunityPage() {
       <div className="fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top,_rgba(128,85,225,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,162,216,0.18),_transparent_45%)]" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-white/40 via-white/65 to-white" />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col gap-8 px-4 py-12">
+      <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col gap-8 px-4 py-6">
         {/* 헤더 */}
         <header className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

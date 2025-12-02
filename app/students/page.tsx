@@ -110,11 +110,20 @@ export default function StudentsPage() {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showAllStudents, setShowAllStudents] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // 모달 상태 디버깅
   useEffect(() => {
     console.log("모달 상태 변경:", { isModalOpen, selectedStudentId });
   }, [isModalOpen, selectedStudentId]);
+
+  useEffect(() => {
+    // 사용자 역할 확인
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("user_role");
+      setUserRole(role);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -124,6 +133,13 @@ export default function StudentsPage() {
         
         if (!userId) {
           setError("로그인이 필요합니다. 먼저 로그인해주세요.");
+          setIsLoading(false);
+          return;
+        }
+
+        // 사용자 역할 확인 - 학생이면 API 호출하지 않음
+        const role = localStorage.getItem("user_role");
+        if (role === "student") {
           setIsLoading(false);
           return;
         }
@@ -214,7 +230,7 @@ export default function StudentsPage() {
       <div className="fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top,_rgba(128,85,225,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,162,216,0.18),_transparent_45%)]" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-white/40 via-white/65 to-white" />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col gap-16 px-4 py-12">
+      <div className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-6xl flex-col gap-16 px-4 py-6">
         <header className="space-y-10 text-center md:text-left">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 text-gray-800 md:mx-0">
             <span className="mx-auto w-fit rounded-full bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8055e1] shadow-sm md:mx-0">
@@ -251,7 +267,28 @@ export default function StudentsPage() {
             )}
           </div>
           
-          {isLoading ? (
+          {userRole === "student" ? (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 p-8">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#8055e1] to-[#6f48d8] flex items-center justify-center">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-gray-900">학생은 선생님을 찾아보세요</h3>
+                <p className="text-gray-600">
+                  학생 계정으로는 다른 학생을 추천받을 수 없어요.<br />
+                  선생님을 찾고 싶으시다면 선생님 찾기 페이지로 이동해주세요.
+                </p>
+              </div>
+              <a
+                href="/tutors"
+                className="mt-4 rounded-full bg-gradient-to-r from-[#8055e1] to-[#6f48d8] px-8 py-3 text-sm font-semibold text-white hover:from-[#6f48d8] hover:to-[#5b3ad6] transition-all shadow-lg hover:shadow-xl"
+              >
+                선생님 찾기로 이동하기
+              </a>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center min-h-[400px]">
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8055e1]"></div>
@@ -302,45 +339,49 @@ export default function StudentsPage() {
         </section>
 
         {/* 추후 추가될 다른 섹션들을 위한 공간 */}
-        <section className="space-y-6 rounded-3xl bg-white/70 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.06)] backdrop-blur">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">지금 뜨는 학생</h2>
-              <p className="text-sm text-gray-500">
-                교육 열정이 높고, 최근 많은 튜터님들이 상담을 진행 중인 학생들이에요.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
-            >
-              추천 학생 저장하기
-            </button>
-          </div>
-          <div className="text-center text-gray-500">
-            추후 추가 예정
-          </div>
-        </section>
+        {userRole !== "student" && (
+          <>
+            <section className="space-y-6 rounded-3xl bg-white/70 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.06)] backdrop-blur">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">지금 뜨는 학생</h2>
+                  <p className="text-sm text-gray-500">
+                    교육 열정이 높고, 최근 많은 튜터님들이 상담을 진행 중인 학생들이에요.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
+                >
+                  추천 학생 저장하기
+                </button>
+              </div>
+              <div className="text-center text-gray-500">
+                추후 추가 예정
+              </div>
+            </section>
 
-        <section className="space-y-6 rounded-3xl bg-white/60 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.05)] backdrop-blur">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">새로 등록된 학생</h2>
-              <p className="text-sm text-gray-500">
-                이제 막 튜터를 찾기 시작한 학생이에요. 빠르게 상담을 제안해 보세요!
-              </p>
-            </div>
-            <button
-              type="button"
-              className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
-            >
-              빠른 상담 제안
-            </button>
-          </div>
-          <div className="text-center text-gray-500">
-            추후 추가 예정
-          </div>
-        </section>
+            <section className="space-y-6 rounded-3xl bg-white/60 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.05)] backdrop-blur">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">새로 등록된 학생</h2>
+                  <p className="text-sm text-gray-500">
+                    이제 막 튜터를 찾기 시작한 학생이에요. 빠르게 상담을 제안해 보세요!
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
+                >
+                  빠른 상담 제안
+                </button>
+              </div>
+              <div className="text-center text-gray-500">
+                추후 추가 예정
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </>
   );
