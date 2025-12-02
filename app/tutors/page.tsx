@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StudentMatchCard } from "@/components/students/StudentMatchCard";
-import { StudentDetailModal } from "@/components/students/StudentDetailModal";
+import { TutorMatchCard } from "@/components/tutors/TutorMatchCard";
+import { TutorDetailModal } from "@/components/tutors/TutorDetailModal";
 import { SUBJECT_ID_TO_NAME, PURPOSE_ID_TO_NAME } from "@/components/students/studentConstants";
 
-type Student = {
+type Tutor = {
   id?: number;
   name: string;
   tag: string;
@@ -16,12 +16,12 @@ type Student = {
   matchScore?: number;
 };
 
-type ApiStudent = {
+type ApiTutor = {
   id?: number;
   name?: string;
   email?: string;
-  preferred_price_min?: number;
-  preferred_price_max?: number;
+  hourly_rate_min?: number;
+  hourly_rate_max?: number;
   subjects?: string[] | number[];
   regions?: string[] | number[];
   skill_level?: string;
@@ -41,13 +41,13 @@ function formatPriceLabel(minPrice?: number, maxPrice?: number): string {
   return `시간 당 ${maxPrice?.toLocaleString()} 이하`;
 }
 
-function transformApiStudentToCard(apiStudent: ApiStudent): Student {
-  const name = apiStudent.name || "이름 없음";
+function transformApiTutorToCard(apiTutor: ApiTutor): Tutor {
+  const name = apiTutor.name || "이름 없음";
   
   // 목적 변환 - goals 배열 처리
   let purposes: string[] = [];
-  if (apiStudent.goals && Array.isArray(apiStudent.goals)) {
-    purposes = apiStudent.goals.map((goal: any) => {
+  if (apiTutor.goals && Array.isArray(apiTutor.goals)) {
+    purposes = apiTutor.goals.map((goal: any) => {
       if (typeof goal === "string") {
         return goal;
       }
@@ -60,8 +60,8 @@ function transformApiStudentToCard(apiStudent: ApiStudent): Student {
 
   // 과목 변환 - subjects 배열 처리
   let subjects: string[] = [];
-  if (apiStudent.subjects && Array.isArray(apiStudent.subjects)) {
-    subjects = apiStudent.subjects.map((subject: any) => {
+  if (apiTutor.subjects && Array.isArray(apiTutor.subjects)) {
+    subjects = apiTutor.subjects.map((subject: any) => {
       if (typeof subject === "string") {
         return subject;
       }
@@ -74,8 +74,8 @@ function transformApiStudentToCard(apiStudent: ApiStudent): Student {
 
   // 지역 변환 - regions 배열 처리
   let regions: string[] = [];
-  if (apiStudent.regions && Array.isArray(apiStudent.regions)) {
-    regions = apiStudent.regions.map((region: any) => {
+  if (apiTutor.regions && Array.isArray(apiTutor.regions)) {
+    regions = apiTutor.regions.map((region: any) => {
       if (typeof region === "string") {
         return region;
       }
@@ -87,37 +87,37 @@ function transformApiStudentToCard(apiStudent: ApiStudent): Student {
   }
 
   const priceLabel = formatPriceLabel(
-    apiStudent.preferred_price_min,
-    apiStudent.preferred_price_max
+    apiTutor.hourly_rate_min,
+    apiTutor.hourly_rate_max
   );
 
   return {
-    id: apiStudent.id,
+    id: apiTutor.id,
     name,
-    tag: "학생",
+    tag: "선생님",
     purposes: purposes.length > 0 ? purposes : ["목적 없음"],
     subjects: subjects.length > 0 ? subjects : ["과목 없음"],
     regions: regions.length > 0 ? regions : [],
     priceLabel,
-    matchScore: apiStudent.match_score,
+    matchScore: apiTutor.match_score,
   };
 }
 
-export default function StudentsPage() {
-  const [perfectMatchStudents, setPerfectMatchStudents] = useState<Student[]>([]);
+export default function TutorsPage() {
+  const [perfectMatchTutors, setPerfectMatchTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedTutorId, setSelectedTutorId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showAllStudents, setShowAllStudents] = useState(false);
+  const [showAllTutors, setShowAllTutors] = useState(false);
 
   // 모달 상태 디버깅
   useEffect(() => {
-    console.log("모달 상태 변경:", { isModalOpen, selectedStudentId });
-  }, [isModalOpen, selectedStudentId]);
+    console.log("모달 상태 변경:", { isModalOpen, selectedTutorId });
+  }, [isModalOpen, selectedTutorId]);
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchTutors = async () => {
       try {
         // localStorage에서 user_id 가져오기
         const userId = localStorage.getItem("user_id");
@@ -136,7 +136,7 @@ export default function StudentsPage() {
           offset: "0",
         });
 
-        const response = await fetch(`/api/students?${queryParams.toString()}`);
+        const response = await fetch(`/api/tutors?${queryParams.toString()}`);
         const data = await response.json();
 
         console.log("=== API 응답 전체 ===");
@@ -145,69 +145,68 @@ export default function StudentsPage() {
 
         if (!response.ok) {
           console.error("API 호출 실패:", data);
-          throw new Error(data?.message || "학생 목록을 불러오는데 실패했습니다.");
+          throw new Error(data?.message || "선생님 목록을 불러오는데 실패했습니다.");
         }
 
         // API 응답 데이터 처리
-        // 응답이 배열 형태로 직접 반환됨: [{ id, name, email, ... }]
-        let students: ApiStudent[] = [];
+        let tutors: ApiTutor[] = [];
         if (Array.isArray(data)) {
-          students = data;
-          console.log("응답이 배열입니다. 길이:", students.length);
+          tutors = data;
+          console.log("응답이 배열입니다. 길이:", tutors.length);
         } else if (Array.isArray(data.data)) {
-          students = data.data;
-          console.log("응답이 data 배열입니다. 길이:", students.length);
-        } else if (data.students && Array.isArray(data.students)) {
-          students = data.students;
-          console.log("응답이 students 배열입니다. 길이:", students.length);
+          tutors = data.data;
+          console.log("응답이 data 배열입니다. 길이:", tutors.length);
+        } else if (data.tutors && Array.isArray(data.tutors)) {
+          tutors = data.tutors;
+          console.log("응답이 tutors 배열입니다. 길이:", tutors.length);
         } else if (data.results && Array.isArray(data.results)) {
-          students = data.results;
-          console.log("응답이 results 배열입니다. 길이:", students.length);
+          tutors = data.results;
+          console.log("응답이 results 배열입니다. 길이:", tutors.length);
         } else {
           console.warn("응답 구조를 알 수 없습니다:", data);
           console.log("data 타입:", typeof data);
           console.log("data 키들:", Object.keys(data || {}));
         }
         
-        console.log("추출된 학생 목록:", students);
-        console.log("학생 수:", students.length);
-        console.log("첫 번째 학생:", students[0]);
-        console.log("첫 번째 학생 ID:", students[0]?.id);
+        console.log("추출된 선생님 목록:", tutors);
+        console.log("선생님 수:", tutors.length);
+        console.log("첫 번째 선생님:", tutors[0]);
+        console.log("첫 번째 선생님 ID:", tutors[0]?.id);
 
         // API 데이터를 카드 형식으로 변환
-        if (students.length === 0) {
-          console.warn("학생 데이터가 비어있습니다!");
-          setPerfectMatchStudents([]);
+        if (tutors.length === 0) {
+          console.warn("선생님 데이터가 비어있습니다!");
+          setPerfectMatchTutors([]);
         } else {
-          // id가 있는 학생만 필터링
-          const validStudents = students.filter((s) => s.id !== undefined && s.id !== null);
-          if (validStudents.length !== students.length) {
-            console.warn(`${students.length - validStudents.length}명의 학생이 id가 없어 제외되었습니다.`);
+          // id가 있는 선생님만 필터링
+          const validTutors = tutors.filter((t) => t.id !== undefined && t.id !== null);
+          if (validTutors.length !== tutors.length) {
+            console.warn(`${tutors.length - validTutors.length}명의 선생님이 id가 없어 제외되었습니다.`);
           }
-          const transformedStudents = validStudents.map(transformApiStudentToCard);
-          console.log("변환된 학생 목록:", transformedStudents);
-          console.log("변환된 학생 수:", transformedStudents.length);
-          setPerfectMatchStudents(transformedStudents);
+          const transformedTutors = validTutors.map(transformApiTutorToCard);
+          console.log("변환된 선생님 목록:", transformedTutors);
+          console.log("변환된 선생님 수:", transformedTutors.length);
+          setPerfectMatchTutors(transformedTutors);
         }
       } catch (err) {
-        console.error("학생 목록 조회 실패:", err);
-        setError(err instanceof Error ? err.message : "학생 목록을 불러오는데 실패했습니다.");
+        console.error("선생님 목록 조회 실패:", err);
+        setError(err instanceof Error ? err.message : "선생님 목록을 불러오는데 실패했습니다.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStudents();
+    fetchTutors();
   }, []);
 
   return (
     <>
-      <StudentDetailModal
-        studentId={selectedStudentId}
+      <TutorDetailModal
+        tutorId={selectedTutorId}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setSelectedStudentId(null);
+          setSelectedTutorId(null);
         }}
       />
       
@@ -218,14 +217,14 @@ export default function StudentsPage() {
         <header className="space-y-10 text-center md:text-left">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 text-gray-800 md:mx-0">
             <span className="mx-auto w-fit rounded-full bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#8055e1] shadow-sm md:mx-0">
-              Student Matching
+              Tutor Matching
             </span>
             <h1 className="text-3xl font-bold leading-snug md:text-4xl">
-              공부가 필요한 순간, <span className="text-[#8055e1]">튜매</span>가
-              <br className="hidden md:block" /> 가장 잘 맞는 학생을 연결해드릴게요.
+              학습이 필요한 순간, <span className="text-[#8055e1]">튜매</span>가
+              <br className="hidden md:block" /> 가장 잘 맞는 선생님을 연결해드릴게요.
             </h1>
             <p className="text-base text-gray-600 md:text-lg">
-              학습 목적과 실력을 분석해 맞춤형 학생을 추천해 드립니다.
+              학습 목적과 실력을 분석해 맞춤형 선생님을 추천해 드립니다.
               <br />
               원하는 수업 방식에 맞춰 지금 바로 상담을 시작해 보세요.
             </p>
@@ -235,18 +234,18 @@ export default function StudentsPage() {
         <section className="space-y-6 rounded-3xl bg-white/80 p-8 shadow-[0_30px_50px_rgba(128,85,225,0.08)] backdrop-blur">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">나와 딱 맞는 학생</h2>
+              <h2 className="text-xl font-semibold text-gray-900">나와 딱 맞는 선생님</h2>
               <p className="text-sm text-gray-500">
-                온보딩 정보를 기반으로 튜터님과 가장 잘 맞는 학생들을 추천했어요.
+                온보딩 정보를 기반으로 학생님과 가장 잘 맞는 선생님들을 추천했어요.
               </p>
             </div>
-            {perfectMatchStudents.length > 3 && (
+            {perfectMatchTutors.length > 3 && (
               <button
                 type="button"
-                onClick={() => setShowAllStudents(!showAllStudents)}
+                onClick={() => setShowAllTutors(!showAllTutors)}
                 className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
               >
-                {showAllStudents ? "간략히 보기" : "더 많은 학생 보기"}
+                {showAllTutors ? "간략히 보기" : "더 많은 선생님 보기"}
               </button>
             )}
           </div>
@@ -255,7 +254,7 @@ export default function StudentsPage() {
             <div className="flex items-center justify-center min-h-[400px]">
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8055e1]"></div>
-                <p className="text-sm text-gray-600">학생 정보를 불러오는 중...</p>
+                <p className="text-sm text-gray-600">선생님 정보를 불러오는 중...</p>
               </div>
             </div>
           ) : error ? (
@@ -263,40 +262,39 @@ export default function StudentsPage() {
               <p className="font-semibold mb-2">에러 발생</p>
               <p>{error}</p>
             </div>
-          ) : perfectMatchStudents.length > 0 ? (
+          ) : perfectMatchTutors.length > 0 ? (
             <>
               <div className="grid gap-6 md:grid-cols-3">
-                {(showAllStudents ? perfectMatchStudents : perfectMatchStudents.slice(0, 3)).map((student, index) => {
-                  console.log("학생 카드 렌더링:", { name: student.name, id: student.id, index });
+                {(showAllTutors ? perfectMatchTutors : perfectMatchTutors.slice(0, 3)).map((tutor, index) => {
+                  console.log("선생님 카드 렌더링:", { name: tutor.name, id: tutor.id, index });
                   return (
-                    <StudentMatchCard
-                      key={`${student.name}-${index}-perfect`}
-                      studentId={student.id}
-                      {...student}
+                    <TutorMatchCard
+                      key={`${tutor.name}-${index}-perfect`}
+                      tutorId={tutor.id}
+                      {...tutor}
                       onDetailClick={(id) => {
                         console.log("onDetailClick 호출됨, id:", id);
                         console.log("현재 모달 상태:", isModalOpen);
-                        setSelectedStudentId(id);
+                        setSelectedTutorId(id);
                         setIsModalOpen(true);
                         console.log("setIsModalOpen(true) 호출됨");
-                        // 상태 업데이트 확인
                         setTimeout(() => {
-                          console.log("상태 업데이트 후:", { isModalOpen, selectedStudentId: id });
+                          console.log("상태 업데이트 후:", { isModalOpen, selectedTutorId: id });
                         }, 0);
                       }}
                     />
                   );
                 })}
               </div>
-              {!showAllStudents && perfectMatchStudents.length > 3 && (
+              {!showAllTutors && perfectMatchTutors.length > 3 && (
                 <div className="mt-4 text-center text-sm text-gray-500">
-                  총 {perfectMatchStudents.length}명의 학생이 있어요
+                  총 {perfectMatchTutors.length}명의 선생님이 있어요
                 </div>
               )}
             </>
           ) : (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-600">
-              아직 매칭되는 학생이 없어요. 조건을 조정해보세요.
+              아직 매칭되는 선생님이 없어요. 조건을 조정해보세요.
             </div>
           )}
         </section>
@@ -305,16 +303,16 @@ export default function StudentsPage() {
         <section className="space-y-6 rounded-3xl bg-white/70 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.06)] backdrop-blur">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">지금 뜨는 학생</h2>
+              <h2 className="text-xl font-semibold text-gray-900">지금 뜨는 선생님</h2>
               <p className="text-sm text-gray-500">
-                교육 열정이 높고, 최근 많은 튜터님들이 상담을 진행 중인 학생들이에요.
+                교육 열정이 높고, 최근 많은 학생님들이 상담을 진행 중인 선생님들이에요.
               </p>
             </div>
             <button
               type="button"
               className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
             >
-              추천 학생 저장하기
+              추천 선생님 저장하기
             </button>
           </div>
           <div className="text-center text-gray-500">
@@ -325,9 +323,9 @@ export default function StudentsPage() {
         <section className="space-y-6 rounded-3xl bg-white/60 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.05)] backdrop-blur">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">새로 등록된 학생</h2>
+              <h2 className="text-xl font-semibold text-gray-900">새로 등록된 선생님</h2>
               <p className="text-sm text-gray-500">
-                이제 막 튜터를 찾기 시작한 학생이에요. 빠르게 상담을 제안해 보세요!
+                이제 막 학생을 찾기 시작한 선생님이에요. 빠르게 상담을 제안해 보세요!
               </p>
             </div>
             <button
@@ -345,3 +343,4 @@ export default function StudentsPage() {
     </>
   );
 }
+

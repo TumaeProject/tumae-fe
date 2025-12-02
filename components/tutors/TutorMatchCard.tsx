@@ -1,7 +1,7 @@
 "use client";
 
-type StudentMatchCardProps = {
-  studentId?: number;
+type TutorMatchCardProps = {
+  tutorId?: number;
   name: string;
   tag: string;
   purposes: string[];
@@ -9,11 +9,11 @@ type StudentMatchCardProps = {
   regions: string[];
   priceLabel: string;
   matchScore?: number;
-  onDetailClick?: (studentId: number) => void;
+  onDetailClick?: (tutorId: number) => void;
 };
 
-export function StudentMatchCard({
-  studentId,
+export function TutorMatchCard({
+  tutorId,
   name,
   tag,
   purposes,
@@ -22,19 +22,19 @@ export function StudentMatchCard({
   priceLabel,
   matchScore,
   onDetailClick,
-}: StudentMatchCardProps) {
+}: TutorMatchCardProps) {
   const handleDetailClick = () => {
-    console.log("handleDetailClick 호출됨, studentId:", studentId, "onDetailClick:", onDetailClick);
+    console.log("handleDetailClick 호출됨, tutorId:", tutorId, "onDetailClick:", onDetailClick);
     
-    if (!studentId) {
-      console.error("studentId가 없습니다. 상세 보기를 열 수 없습니다.");
-      alert("학생 정보를 불러올 수 없습니다. 페이지를 새로고침해주세요.");
+    if (!tutorId) {
+      console.error("tutorId가 없습니다. 상세 보기를 열 수 없습니다.");
+      alert("선생님 정보를 불러올 수 없습니다. 페이지를 새로고침해주세요.");
       return;
     }
     
     if (onDetailClick) {
-      console.log("상세 보기 클릭, studentId:", studentId);
-      onDetailClick(studentId);
+      console.log("상세 보기 클릭, tutorId:", tutorId);
+      onDetailClick(tutorId);
     } else {
       console.error("onDetailClick 함수가 없습니다!");
     }

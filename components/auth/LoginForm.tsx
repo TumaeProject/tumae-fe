@@ -46,25 +46,58 @@ export function LoginForm() {
         body: JSON.stringify(form),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        let data;
+        let errorMessage;
         try {
-          data = await response.json();
+          errorMessage =
+            typeof data?.message === "string"
+              ? data.message
+              : "로그인에 실패했어요. 다시 시도해주세요.";
         } catch (e) {
           // JSON 파싱 실패 시 (HTML 응답 등)
           setErrorMessage("로그인에 실패했어요. 다시 시도해주세요.");
           return;
         }
-        const message =
-          typeof data?.message === "string"
-            ? data.message
-            : "로그인에 실패했어요. 다시 시도해주세요.";
-        setErrorMessage(message);
+        setErrorMessage(errorMessage);
         return;
       }
 
-      // 로그인 성공 시 홈 페이지로 리다이렉트
-      router.push("/");
+      // 로그인 성공 시 응답 데이터 저장
+      // 응답 형식: { message: "SUCCESS", data: { access_token, refresh_token, user: { user_id, ... }, redirect_url } }
+      const responseData = data?.data;
+      
+      if (responseData) {
+        // 토큰 저장
+        if (responseData.access_token) {
+          localStorage.setItem("access_token", responseData.access_token);
+        }
+        if (responseData.refresh_token) {
+          localStorage.setItem("refresh_token", responseData.refresh_token);
+        }
+        
+        // 사용자 정보 저장
+        if (responseData.user?.user_id) {
+          localStorage.setItem("user_id", String(responseData.user.user_id));
+        }
+        if (responseData.user?.role) {
+          localStorage.setItem("user_role", responseData.user.role);
+        }
+        if (responseData.user?.name) {
+          localStorage.setItem("user_name", responseData.user.name);
+        }
+        if (responseData.user?.email) {
+          localStorage.setItem("user_email", responseData.user.email);
+        }
+      }
+
+      // 커스텀 이벤트 발생 (Header 컴포넌트에 로그인 상태 변경 알림)
+      window.dispatchEvent(new Event("authStateChanged"));
+
+      // redirect_url이 있으면 사용, 없으면 홈으로
+      const redirectUrl = responseData?.redirect_url || "/";
+      router.push(redirectUrl);
 
 
     } catch (error) {
