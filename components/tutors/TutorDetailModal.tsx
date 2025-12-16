@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SUBJECT_ID_TO_NAME, PURPOSE_ID_TO_NAME, LESSON_TYPE_ID_TO_NAME } from "../students/studentConstants";
 
 type TutorDetail = {
@@ -25,6 +26,7 @@ type TutorDetailModalProps = {
 };
 
 export function TutorDetailModal({ tutorId, isOpen, onClose }: TutorDetailModalProps) {
+  const router = useRouter();
   const [tutor, setTutor] = useState<TutorDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -307,6 +309,12 @@ export function TutorDetailModal({ tutorId, isOpen, onClose }: TutorDetailModalP
                 닫기
               </button>
               <button
+                onClick={() => {
+                  if (tutor) {
+                    router.push(`/messages/compose?receiver_id=${tutor.id}&receiver_name=${encodeURIComponent(tutor.name)}`);
+                    onClose();
+                  }
+                }}
                 className="flex-1 rounded-xl bg-gradient-to-r from-[#8055e1] to-[#6f48d8] px-6 py-3.5 text-sm font-semibold text-white hover:from-[#6f48d8] hover:to-[#5b3ad6] transition-all shadow-lg hover:shadow-xl"
               >
                 상담 신청하기

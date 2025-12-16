@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SUBJECT_ID_TO_NAME, PURPOSE_ID_TO_NAME, LESSON_TYPE_ID_TO_NAME } from "./studentConstants";
 
 type StudentDetail = {
@@ -25,6 +26,7 @@ type StudentDetailModalProps = {
 };
 
 export function StudentDetailModal({ studentId, isOpen, onClose }: StudentDetailModalProps) {
+  const router = useRouter();
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -307,6 +309,12 @@ export function StudentDetailModal({ studentId, isOpen, onClose }: StudentDetail
                 닫기
               </button>
               <button
+                onClick={() => {
+                  if (student) {
+                    router.push(`/messages/compose?receiver_id=${student.id}&receiver_name=${encodeURIComponent(student.name)}`);
+                    onClose();
+                  }
+                }}
                 className="flex-1 rounded-xl bg-gradient-to-r from-[#8055e1] to-[#6f48d8] px-6 py-3.5 text-sm font-semibold text-white hover:from-[#6f48d8] hover:to-[#5b3ad6] transition-all shadow-lg hover:shadow-xl"
               >
                 상담 신청하기

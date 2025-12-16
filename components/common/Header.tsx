@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "학생 찾기", href: "/students" },
   { label: "선생님 찾기", href: "/tutors" },
   { label: "커뮤니티", href: "/community" },
+  { label: "쪽지함", href: "/messages" },
 ];
 
 export function Header() {
