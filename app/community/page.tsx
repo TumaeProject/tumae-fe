@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 
 const CATEGORIES = ["전체", "질문하기", "정보공유", "자유게시판", "스터디 모집"];
@@ -19,66 +19,46 @@ type Post = {
   isHot?: boolean;
 };
 
-// 더미 데이터 (추후 API 연동 시 제거)
-const SAMPLE_POSTS: Post[] = [
-  {
-    id: 1,
-    title: "React 학습 방법에 대해 조언 부탁드려요",
-    author: "김학생",
-    category: "질문하기",
-    content: "React를 처음 배우기 시작했는데, 어떤 순서로 공부하는 게 좋을까요? 실무에서 자주 사용하는 패턴이 있다면 알려주세요!",
-    views: 142,
-    likes: 23,
-    comments: 15,
-    createdAt: "2시간 전",
-    isHot: true,
-  },
-  {
-    id: 2,
-    title: "Spring Boot 프로젝트 구조 베스트 프랙티스",
-    author: "박튜터",
-    category: "정보공유",
-    content: "실무에서 사용하는 Spring Boot 프로젝트 구조를 정리해봤어요. 레이어드 아키텍처 기반으로 설계했습니다.",
-    views: 256,
-    likes: 45,
-    comments: 12,
-    createdAt: "5시간 전",
-    isHot: true,
-  },
-  {
-    id: 3,
-    title: "프론트엔드 개발자 모임 (온라인)",
-    author: "이모임장",
-    category: "스터디 모집",
-    content: "주 2회 온라인으로 모여서 프로젝트를 함께 진행합니다. 관심 있으신 분들 환영해요!",
-    views: 89,
-    likes: 34,
-    comments: 8,
-    createdAt: "1일 전",
-  },
-  {
-    id: 4,
-    title: "코딩 테스트 준비 팁 공유합니다",
-    author: "최준비생",
-    category: "정보공유",
-    content: "카카오 코딩테스트 합격 후기와 준비 방법을 공유합니다. 알고리즘 문제 풀이 전략 위주로 작성했어요.",
-    views: 312,
-    likes: 67,
-    comments: 24,
-    createdAt: "2일 전",
-  },
-  {
-    id: 5,
-    title: "TypeScript vs JavaScript 어떤 걸 배워야 할까요?",
-    author: "정초보",
-    category: "질문하기",
-    content: "웹 개발을 시작하려고 하는데, TypeScript를 바로 배워야 할지 JavaScript부터 시작해야 할지 고민이에요.",
-    views: 198,
-    likes: 31,
-    comments: 19,
-    createdAt: "3일 전",
-  },
-];
+type ApiPost = {
+  id: number;
+  title: string;
+  body: string;
+  author_id: number;
+  author_name: string;
+  subject_id: number;
+  subject_name: string;
+  region_id: number;
+  region_name: string;
+  created_at: string;
+};
+
+type ApiResponse = {
+  total_count: number;
+  page: number;
+  limit: number;
+  posts: ApiPost[];
+};
+
+// 날짜 포맷팅 함수
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "방금 전";
+  if (diffMins < 60) return `${diffMins}분 전`;
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  if (diffDays < 7) return `${diffDays}일 전`;
+  
+  return date.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 function PostCard({ post }: { post: Post }) {
   return (
@@ -153,8 +133,67 @@ function PostCard({ post }: { post: Post }) {
 export default function CommunityPage() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedSort, setSelectedSort] = useState("최신순");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredPosts = SAMPLE_POSTS.filter(
+  // API 호출 함수
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 정렬 옵션을 API order 파라미터로 변환
+      const order = selectedSort === "최신순" ? "latest" : "oldest";
+
+      // 쿼리 파라미터 구성
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "20",
+        order,
+      });
+
+      const response = await fetch(`/api/community/posts?${params.toString()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "게시글을 불러오는데 실패했습니다.");
+      }
+
+      const data: ApiResponse = await response.json();
+      
+      // API 응답을 Post 타입으로 변환
+      const convertedPosts: Post[] = data.posts.map((apiPost) => ({
+        id: apiPost.id,
+        title: apiPost.title,
+        author: apiPost.author_name,
+        category: apiPost.subject_name || "전체",
+        content: apiPost.body,
+        views: 0, // API에 없음
+        likes: 0, // API에 없음
+        comments: 0, // API에 없음
+        createdAt: formatDate(apiPost.created_at),
+        isHot: false, // API에 없음
+      }));
+
+      setPosts(convertedPosts);
+      setTotalCount(data.total_count);
+    } catch (err) {
+      console.error("게시글 조회 오류:", err);
+      setError(err instanceof Error ? err.message : "게시글을 불러오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSort, currentPage]);
+
+  // 컴포넌트 마운트 시 및 정렬 옵션 변경 시 API 호출
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const filteredPosts = posts.filter(
     (post) => selectedCategory === "전체" || post.category === selectedCategory
   );
 
@@ -209,7 +248,7 @@ export default function CommunityPage() {
           {/* 정렬 옵션 */}
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">
-              총 <span className="font-semibold text-[#8055e1]">{filteredPosts.length}</span>개의 게시글
+              총 <span className="font-semibold text-[#8055e1]">{totalCount}</span>개의 게시글
             </span>
             <div className="flex items-center gap-2">
               {SORT_OPTIONS.map((option) => (
@@ -217,11 +256,12 @@ export default function CommunityPage() {
                   key={option}
                   type="button"
                   onClick={() => setSelectedSort(option)}
+                  disabled={loading}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                     selectedSort === option
                       ? "bg-[#8055e1] text-white"
                       : "bg-white/80 text-gray-600 hover:bg-gray-100"
-                  }`}
+                  } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {option}
                 </button>
@@ -232,7 +272,21 @@ export default function CommunityPage() {
 
         {/* 게시글 목록 */}
         <section className="space-y-4">
-          {filteredPosts.length > 0 ? (
+          {loading ? (
+            <div className="rounded-2xl bg-white/80 p-12 text-center shadow-[0_4px_20px_rgba(128,85,225,0.08)]">
+              <p className="text-gray-500">게시글을 불러오는 중...</p>
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl bg-white/80 p-12 text-center shadow-[0_4px_20px_rgba(128,85,225,0.08)]">
+              <p className="text-red-500 mb-4">{error}</p>
+              <button
+                onClick={fetchPosts}
+                className="rounded-lg bg-[#8055e1] px-4 py-2 text-sm font-medium text-white hover:bg-[#6f48d8] transition"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : filteredPosts.length > 0 ? (
             filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
           ) : (
             <div className="rounded-2xl bg-white/80 p-12 text-center shadow-[0_4px_20px_rgba(128,85,225,0.08)]">

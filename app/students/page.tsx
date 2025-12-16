@@ -214,7 +214,7 @@ export default function StudentsPage() {
     };
 
     fetchStudents();
-  }, []);
+  }, [userRole]);
 
   return (
     <>
@@ -249,23 +249,25 @@ export default function StudentsPage() {
         </header>
 
         <section className="space-y-6 rounded-3xl bg-white/80 p-8 shadow-[0_30px_50px_rgba(128,85,225,0.08)] backdrop-blur">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">나와 딱 맞는 학생</h2>
-              <p className="text-sm text-gray-500">
-                온보딩 정보를 기반으로 튜터님과 가장 잘 맞는 학생들을 추천했어요.
-              </p>
+          {userRole !== "student" && (
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">나와 딱 맞는 학생</h2>
+                <p className="text-sm text-gray-500">
+                  온보딩 정보를 기반으로 튜터님과 가장 잘 맞는 학생들을 추천했어요.
+                </p>
+              </div>
+              {perfectMatchStudents.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllStudents(!showAllStudents)}
+                  className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
+                >
+                  {showAllStudents ? "간략히 보기" : "더 많은 학생 보기"}
+                </button>
+              )}
             </div>
-            {perfectMatchStudents.length > 3 && (
-              <button
-                type="button"
-                onClick={() => setShowAllStudents(!showAllStudents)}
-                className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
-              >
-                {showAllStudents ? "간략히 보기" : "더 많은 학생 보기"}
-              </button>
-            )}
-          </div>
+          )}
           
           {userRole === "student" ? (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 p-8">
@@ -300,26 +302,18 @@ export default function StudentsPage() {
               <p className="font-semibold mb-2">에러 발생</p>
               <p>{error}</p>
             </div>
-          ) : perfectMatchStudents.length > 0 ? (
+          ) : userRole !== "student" && perfectMatchStudents.length > 0 ? (
             <>
               <div className="grid gap-6 md:grid-cols-3">
                 {(showAllStudents ? perfectMatchStudents : perfectMatchStudents.slice(0, 3)).map((student, index) => {
-                  console.log("학생 카드 렌더링:", { name: student.name, id: student.id, index });
                   return (
                     <StudentMatchCard
                       key={`${student.name}-${index}-perfect`}
                       studentId={student.id}
                       {...student}
                       onDetailClick={(id) => {
-                        console.log("onDetailClick 호출됨, id:", id);
-                        console.log("현재 모달 상태:", isModalOpen);
                         setSelectedStudentId(id);
                         setIsModalOpen(true);
-                        console.log("setIsModalOpen(true) 호출됨");
-                        // 상태 업데이트 확인
-                        setTimeout(() => {
-                          console.log("상태 업데이트 후:", { isModalOpen, selectedStudentId: id });
-                        }, 0);
                       }}
                     />
                   );
@@ -331,11 +325,11 @@ export default function StudentsPage() {
                 </div>
               )}
             </>
-          ) : (
+          ) : userRole !== "student" ? (
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center text-gray-600">
               아직 매칭되는 학생이 없어요. 조건을 조정해보세요.
             </div>
-          )}
+          ) : null}
         </section>
 
         {/* 추후 추가될 다른 섹션들을 위한 공간 */}

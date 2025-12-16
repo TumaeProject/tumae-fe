@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { TutorMatchCard } from "@/components/tutors/TutorMatchCard";
 import { TutorDetailModal } from "@/components/tutors/TutorDetailModal";
 import { SUBJECT_ID_TO_NAME, PURPOSE_ID_TO_NAME } from "@/components/students/studentConstants";
@@ -105,12 +105,15 @@ function transformApiTutorToCard(apiTutor: ApiTutor): Tutor {
 
 export default function TutorsPage() {
   const [perfectMatchTutors, setPerfectMatchTutors] = useState<Tutor[]>([]);
+  const [bestTutors, setBestTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingBest, setIsLoadingBest] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTutorId, setSelectedTutorId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showAllTutors, setShowAllTutors] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const hasFetchedRef = useRef<string | null>(null);
 
   // 모달 상태 디버깅
   useEffect(() => {
@@ -127,7 +130,21 @@ export default function TutorsPage() {
 
   useEffect(() => {
     const fetchTutors = async () => {
+      // userRole이 null이면 아직 설정되지 않았으므로 대기
+      if (userRole === null) {
+        return;
+      }
+
+      // 같은 userRole에 대해 이미 호출했으면 중복 호출 방지
+      if (hasFetchedRef.current === userRole) {
+        return;
+      }
+
       try {
+        hasFetchedRef.current = userRole;
+        setIsLoading(true);
+        setError(null);
+
         // localStorage에서 user_id 가져오기
         const userId = localStorage.getItem("user_id");
         
@@ -213,7 +230,61 @@ export default function TutorsPage() {
     };
 
     fetchTutors();
-  }, []);
+  }, [userRole]);
+
+  // 채택 많이 받은 선생님 조회
+  useEffect(() => {
+    const fetchBestTutors = async () => {
+      // userRole이 null이면 아직 설정되지 않았으므로 대기
+      if (userRole === null) {
+        return;
+      }
+
+      const role = localStorage.getItem("user_role");
+      if (role === "tutor") {
+        setIsLoadingBest(false);
+        return;
+      }
+
+      try {
+        setIsLoadingBest(true);
+        const response = await fetch(`/api/tutors/rankings/best?limit=3`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error("채택 많이 받은 선생님 조회 실패:", data);
+          setBestTutors([]);
+          return;
+        }
+
+        let tutors: ApiTutor[] = [];
+        if (Array.isArray(data)) {
+          tutors = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          tutors = data.data;
+        } else if (data.tutors && Array.isArray(data.tutors)) {
+          tutors = data.tutors;
+        } else if (data.results && Array.isArray(data.results)) {
+          tutors = data.results;
+        }
+
+        if (tutors.length > 0) {
+          const validTutors = tutors.filter((t) => t.id !== undefined && t.id !== null);
+          const transformedTutors = validTutors.map(transformApiTutorToCard);
+          setBestTutors(transformedTutors);
+        } else {
+          setBestTutors([]);
+        }
+      } catch (err) {
+        console.error("채택 많이 받은 선생님 조회 오류:", err);
+        setBestTutors([]);
+      } finally {
+        setIsLoadingBest(false);
+      }
+    };
+
+    fetchBestTutors();
+  }, [userRole]);
 
   return (
     <>
@@ -303,7 +374,6 @@ export default function TutorsPage() {
             <>
               <div className="grid gap-6 md:grid-cols-3">
                 {(showAllTutors ? perfectMatchTutors : perfectMatchTutors.slice(0, 3)).map((tutor, index) => {
-                  console.log("선생님 카드 렌더링:", { name: tutor.name, id: tutor.id, index });
                   return (
                     <TutorMatchCard
                       key={`${tutor.name}-${index}-perfect`}
@@ -342,41 +412,38 @@ export default function TutorsPage() {
             <section className="space-y-6 rounded-3xl bg-white/70 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.06)] backdrop-blur">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">지금 뜨는 선생님</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">채택 많이 받은 선생님</h2>
                   <p className="text-sm text-gray-500">
-                    교육 열정이 높고, 최근 많은 학생님들이 상담을 진행 중인 선생님들이에요.
+                    교육 열정이 높고, 커뮤니티에서 많은 학생들에게 채택 받은 선생님들이에요.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
-                >
-                  추천 선생님 저장하기
-                </button>
               </div>
-              <div className="text-center text-gray-500">
-                추후 추가 예정
-              </div>
-            </section>
-
-            <section className="space-y-6 rounded-3xl bg-white/60 p-8 shadow-[0_20px_45px_rgba(119,74,255,0.05)] backdrop-blur">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">새로 등록된 선생님</h2>
-                  <p className="text-sm text-gray-500">
-                    이제 막 학생을 찾기 시작한 선생님이에요. 빠르게 상담을 제안해 보세요!
-                  </p>
+              {isLoadingBest ? (
+                <div className="flex items-center justify-center min-h-[300px]">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#8055e1]"></div>
+                    <p className="text-sm text-gray-600">채택 많이 받은 선생님을 불러오는 중...</p>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="w-full rounded-full border border-[#d7cbff] px-5 py-2 text-sm font-medium text-[#5a3dd8] transition hover:-translate-y-0.5 hover:border-[#8055e1] hover:text-[#8055e1] md:w-auto"
-                >
-                  빠른 상담 제안
-                </button>
-              </div>
-              <div className="text-center text-gray-500">
-                추후 추가 예정
-              </div>
+              ) : bestTutors.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-3">
+                  {bestTutors.map((tutor, index) => (
+                    <TutorMatchCard
+                      key={`${tutor.name}-${index}-best`}
+                      tutorId={tutor.id}
+                      {...tutor}
+                      onDetailClick={(id) => {
+                        setSelectedTutorId(id);
+                        setIsModalOpen(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  채택 많이 받은 선생님이 없어요.
+                </div>
+              )}
             </section>
           </>
         )}

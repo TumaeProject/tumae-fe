@@ -45,7 +45,7 @@ type StudentFormValues = {
   days: string[];
   timeSlots: string[];
   regions: string[];
-  education: string;
+  age: string;
 };
 
 const INITIAL_STUDENT_FORM: StudentFormValues = {
@@ -58,7 +58,7 @@ const INITIAL_STUDENT_FORM: StudentFormValues = {
   days: [],
   timeSlots: [],
   regions: [],
-  education: "",
+  age: "",
 };
 
 const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
@@ -118,13 +118,6 @@ const STUDENT_FIELDS: OnboardingField<StudentFormValues>[] = [
     label: "수업 가능 시간대",
     options: TIME_OPTIONS,
   },
-  {
-    type: "textarea",
-    key: "education",
-    label: "현재 학력/상태",
-    placeholder: "현재 학력이나 상황을 입력해주세요",
-    rows: 4,
-  },
 ];
 
 const validateStudentForm = (form: StudentFormValues) => {
@@ -156,6 +149,15 @@ const validateStudentForm = (form: StudentFormValues) => {
     return "최대 예산은 20,000원 이상 50,000원 이하여야 합니다.";
   }
 
+  if (!form.age || form.age.trim() === "") {
+    return "나이를 입력해주세요.";
+  }
+
+  const age = parseInt(form.age, 10);
+  if (isNaN(age) || age < 1 || age > 150) {
+    return "나이는 1세 이상 150세 이하여야 합니다.";
+  }
+
   return null;
 };
 
@@ -167,6 +169,23 @@ const dayToWeekday = (day: string): number => {
 // 시간대를 time_band_id로 변환 (실제 DB ID 사용)
 const timeSlotToTimeBandId = (timeSlot: string): number => {
   return TIME_BAND_ID_MAP[timeSlot] || 0;
+};
+
+// 나이를 student_age_id로 변환
+// 일반적인 나이 범위 기준 (정확한 ID 매핑은 백엔드와 확인 필요)
+const ageToAgeId = (age: number): number => {
+  if (age >= 6 && age <= 12) {
+    return 1; // 초등학생
+  } else if (age >= 13 && age <= 15) {
+    return 2; // 중학생
+  } else if (age >= 16 && age <= 18) {
+    return 3; // 고등학생
+  } else if (age >= 19 && age <= 22) {
+    return 4; // 대학생
+  } else if (age >= 23) {
+    return 5; // 성인
+  }
+  return 0; // 기본값 (나이 범위 외)
 };
 
 export function StudentOnboardingForm() {
@@ -296,6 +315,8 @@ export function StudentOnboardingForm() {
 
       const minPrice = parseInt(form.preferredPriceMin, 10);
       const maxPrice = parseInt(form.preferredPriceMax, 10);
+      const age = parseInt(form.age, 10);
+      const studentAgeId = ageToAgeId(age);
       
       // API 요청 데이터 구성
       const requestData = {
@@ -308,6 +329,7 @@ export function StudentOnboardingForm() {
         preferred_price_min: minPrice,
         preferred_price_max: maxPrice,
         student_skill_levels: studentSkillLevels,
+        student_age_id: studentAgeId, 
       };
 
       console.log("학생 온보딩 API 요청 데이터:", requestData);
@@ -367,15 +389,31 @@ export function StudentOnboardingForm() {
       submitLabel="정보 저장하기"
       loadingLabel="저장 중..."
       renderCustomField={(formValues, setFormValues) => (
-        <section className="mt-8 space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">희망 지역</h3>
-          <RegionSelector
-            selectedRegions={(formValues.regions as string[]) || []}
-            onChange={(regions) => {
-              setFormValues({ ...formValues, regions } as StudentFormValues);
-            }}
-          />
-        </section>
+        <>
+          <section className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">나이</h3>
+            <input
+              type="number"
+              min="1"
+              max="150"
+              value={formValues.age || ""}
+              onChange={(e) => {
+                setFormValues({ ...formValues, age: e.target.value } as StudentFormValues);
+              }}
+              placeholder="나이를 입력해주세요"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+            />
+          </section>
+          <section className="mt-8 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">희망 지역</h3>
+            <RegionSelector
+              selectedRegions={(formValues.regions as string[]) || []}
+              onChange={(regions) => {
+                setFormValues({ ...formValues, regions } as StudentFormValues);
+              }}
+            />
+          </section>
+        </>
       )}
     />
   );
