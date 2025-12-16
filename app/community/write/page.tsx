@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SUBJECT_OPTIONS, SUBJECT_ID_MAP } from "@/components/signup/onboardingOptions";
 import { RegionSelector } from "@/components/signup/RegionSelector";
@@ -79,6 +79,27 @@ export default function WritePostPage() {
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 학생 권한 체크
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const accessToken = localStorage.getItem("access_token");
+      const userRole = localStorage.getItem("user_role");
+
+      if (!accessToken) {
+        router.push("/login");
+        return;
+      }
+
+      if (userRole !== "student") {
+        setErrorMessage("글 작성은 학생만 가능합니다.");
+        // 에러 메시지를 보여준 후 커뮤니티 페이지로 리다이렉트
+        setTimeout(() => {
+          router.push("/community");
+        }, 2000);
+      }
+    }
+  }, [router]);
 
   const handleChange = (field: keyof PostFormValues, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));

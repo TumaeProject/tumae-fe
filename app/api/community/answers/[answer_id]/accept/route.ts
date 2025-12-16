@@ -29,19 +29,23 @@ export async function PATCH(
       );
     }
 
-    // Swagger 명세에 따르면 user_id는 query parameter로 전송해야 함
-    const queryParams = new URLSearchParams({
-      user_id: String(body.user_id),
-    });
-
-    const apiUrl = `${getApiUrl(`/community/answers/${answerId}/accept`)}?${queryParams.toString()}`;
+    const apiUrl = getApiUrl(`/community/answers/${answerId}/accept`);
     console.log("백엔드 API 호출 URL:", apiUrl);
+
+    // 헤더 구성
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    // request body에 user_id 포함
+    const requestBody = {
+      user_id: body.user_id,
+    };
 
     const response = await fetch(apiUrl, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();

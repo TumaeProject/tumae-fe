@@ -39,12 +39,21 @@ export default function PostDetailPage() {
   const [isSubmittingAnswer, setIsSubmittingAnswer] = useState(false);
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [acceptingAnswerId, setAcceptingAnswerId] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (postId) {
       fetchPostDetail();
     }
   }, [postId]);
+
+  useEffect(() => {
+    // 사용자 역할 확인
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("user_role");
+      setUserRole(role);
+    }
+  }, []);
 
   const fetchPostDetail = async () => {
     setIsLoading(true);
@@ -86,6 +95,13 @@ export default function PostDetailPage() {
     const userId = localStorage.getItem("user_id");
     if (!userId) {
       setAnswerError("로그인이 필요합니다. 먼저 로그인해주세요.");
+      return;
+    }
+
+    // 선생님만 댓글 작성 가능
+    const role = localStorage.getItem("user_role");
+    if (role !== "tutor") {
+      setAnswerError("댓글 작성은 선생님만 가능합니다.");
       return;
     }
 
@@ -158,11 +174,22 @@ export default function PostDetailPage() {
     setAnswerError(null);
 
     try {
+      // 인증 토큰 가져오기
+      const accessToken = localStorage.getItem("access_token");
+      
+      // 헤더 구성
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Authorization 헤더 추가 (토큰이 있는 경우)
+      if (accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+      }
+
       const response = await fetch(`/api/community/answers/${answerId}/accept`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           user_id: parseInt(userId, 10),
         }),
@@ -323,36 +350,44 @@ export default function PostDetailPage() {
             </h2>
           </div>
 
-          {/* 답변 입력 폼 */}
-          <form onSubmit={handleSubmitAnswer} className="mb-6 space-y-3">
-            {answerError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {answerError}
+          {/* 답변 입력 폼 - 선생님만 표시 */}
+          {userRole === "tutor" ? (
+            <form onSubmit={handleSubmitAnswer} className="mb-6 space-y-3">
+              {answerError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {answerError}
+                </div>
+              )}
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <textarea
+                  value={answerBody}
+                  onChange={(e) => {
+                    setAnswerBody(e.target.value);
+                    setAnswerError(null);
+                  }}
+                  placeholder="답변을 입력해주세요..."
+                  rows={4}
+                  className="w-full resize-none border-none bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                  disabled={isSubmittingAnswer}
+                />
               </div>
-            )}
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <textarea
-                value={answerBody}
-                onChange={(e) => {
-                  setAnswerBody(e.target.value);
-                  setAnswerError(null);
-                }}
-                placeholder="답변을 입력해주세요..."
-                rows={4}
-                className="w-full resize-none border-none bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
-                disabled={isSubmittingAnswer}
-              />
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmittingAnswer || !answerBody.trim()}
+                  className="rounded-lg bg-[#8055e1] px-6 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-[#6f48d8] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingAnswer ? "등록 중..." : "답변 등록"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+              <p className="text-sm text-gray-600">
+                댓글 작성은 선생님만 가능합니다.
+              </p>
             </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmittingAnswer || !answerBody.trim()}
-                className="rounded-lg bg-[#8055e1] px-6 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-[#6f48d8] disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmittingAnswer ? "등록 중..." : "답변 등록"}
-              </button>
-            </div>
-          </form>
+          )}
 
           {/* 답변 목록 */}
           {post.answers && post.answers.length > 0 ? (

@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 
-const CATEGORIES = ["전체", "질문하기", "정보공유", "자유게시판", "스터디 모집"];
-const SORT_OPTIONS = ["최신순", "인기순", "댓글순"];
 
 type Post = {
   id: number;
@@ -96,34 +94,12 @@ function PostCard({ post }: { post: Post }) {
       
       <p className="text-sm text-gray-600 mb-4 line-clamp-2">{post.content}</p>
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+      <div className="flex items-center pt-4 border-t border-gray-100">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#8e6dff] to-[#5b3ad6] text-sm font-semibold text-white">
             {post.author.charAt(0)}
           </div>
           <span className="text-sm font-medium text-gray-700">{post.author}</span>
-        </div>
-        
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            {post.views}
-          </span>
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            {post.likes}
-          </span>
-          <span className="flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            {post.comments}
-          </span>
         </div>
       </div>
     </Link>
@@ -131,13 +107,12 @@ function PostCard({ post }: { post: Post }) {
 }
 
 export default function CommunityPage() {
-  const [selectedCategory, setSelectedCategory] = useState("전체");
-  const [selectedSort, setSelectedSort] = useState("최신순");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // API 호출 함수
   const fetchPosts = useCallback(async () => {
@@ -145,14 +120,11 @@ export default function CommunityPage() {
       setLoading(true);
       setError(null);
 
-      // 정렬 옵션을 API order 파라미터로 변환
-      const order = selectedSort === "최신순" ? "latest" : "oldest";
-
-      // 쿼리 파라미터 구성
+      // 쿼리 파라미터 구성 (기본값: 최신순)
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "20",
-        order,
+        order: "latest",
       });
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
@@ -186,16 +158,20 @@ export default function CommunityPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedSort, currentPage]);
+  }, [currentPage]);
 
-  // 컴포넌트 마운트 시 및 정렬 옵션 변경 시 API 호출
+  // 컴포넌트 마운트 시 API 호출
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  const filteredPosts = posts.filter(
-    (post) => selectedCategory === "전체" || post.category === selectedCategory
-  );
+  // 사용자 역할 확인
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("user_role");
+      setUserRole(role);
+    }
+  }, []);
 
   return (
     <>
@@ -219,54 +195,21 @@ export default function CommunityPage() {
                 학습 중 생긴 질문부터 정보 공유까지, 다양한 주제로 소통해요.
               </p>
             </div>
-            <Link
-              href="/community/write"
-              className="w-full rounded-xl bg-[#8055e1] px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#6f48d8] hover:shadow-xl md:w-auto"
-            >
-              글 작성하기
-            </Link>
-          </div>
-
-          {/* 카테고리 필터 */}
-          <div className="flex flex-wrap items-center gap-3">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setSelectedCategory(category)}
-                className={`rounded-full px-4 py-2 text-sm font-medium shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                  selectedCategory === category
-                    ? "bg-[#8055e1] text-white"
-                    : "bg-white/80 text-[#5b36d4] border border-[#e5dbff]"
-                }`}
+            {userRole === "student" && (
+              <Link
+                href="/community/write"
+                className="w-full rounded-xl bg-[#8055e1] px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-[#6f48d8] hover:shadow-xl md:w-auto"
               >
-                {category}
-              </button>
-            ))}
+                글 작성하기
+              </Link>
+            )}
           </div>
 
-          {/* 정렬 옵션 */}
-          <div className="flex items-center justify-between">
+          {/* 게시글 개수 */}
+          <div className="flex items-center">
             <span className="text-sm text-gray-600">
               총 <span className="font-semibold text-[#8055e1]">{totalCount}</span>개의 게시글
             </span>
-            <div className="flex items-center gap-2">
-              {SORT_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setSelectedSort(option)}
-                  disabled={loading}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                    selectedSort === option
-                      ? "bg-[#8055e1] text-white"
-                      : "bg-white/80 text-gray-600 hover:bg-gray-100"
-                  } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
           </div>
         </header>
 
@@ -286,8 +229,8 @@ export default function CommunityPage() {
                 다시 시도
               </button>
             </div>
-          ) : filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
+          ) : posts.length > 0 ? (
+            posts.map((post) => <PostCard key={post.id} post={post} />)
           ) : (
             <div className="rounded-2xl bg-white/80 p-12 text-center shadow-[0_4px_20px_rgba(128,85,225,0.08)]">
               <p className="text-gray-500">등록된 게시글이 없어요.</p>
