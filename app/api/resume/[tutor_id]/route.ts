@@ -108,11 +108,22 @@ export async function POST(
     const body = await request.json();
     console.log("Request Body:", JSON.stringify(body, null, 2));
 
-    // block_type을 query parameter로 추가
-    const blockType = body.block_type;
-    const apiUrlWithQuery = blockType
-      ? `${apiUrl}?block_type=${encodeURIComponent(blockType)}`
-      : apiUrl;
+    // 모든 필드를 query parameter로 변환
+    const queryParams = new URLSearchParams();
+    
+    if (body.block_type) queryParams.append("block_type", body.block_type);
+    if (body.title) queryParams.append("title", body.title);
+    if (body.period) queryParams.append("period", body.period);
+    if (body.role) queryParams.append("role", body.role);
+    if (body.description) queryParams.append("description", body.description);
+    if (body.tech_stack) queryParams.append("tech_stack", body.tech_stack);
+    if (body.issuer) queryParams.append("issuer", body.issuer);
+    if (body.acquired_at) queryParams.append("acquired_at", body.acquired_at);
+    if (body.file_url) queryParams.append("file_url", body.file_url);
+    if (body.link_url) queryParams.append("link_url", body.link_url);
+
+    const queryString = queryParams.toString();
+    const apiUrlWithQuery = queryString ? `${apiUrl}?${queryString}` : apiUrl;
 
     console.log("API URL with query:", apiUrlWithQuery);
 
@@ -129,7 +140,6 @@ export async function POST(
     const response = await fetch(apiUrlWithQuery, {
       method: "POST",
       headers,
-      body: JSON.stringify(body),
     });
 
     // Content-Type 확인

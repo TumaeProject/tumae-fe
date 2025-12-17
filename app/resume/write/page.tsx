@@ -254,22 +254,18 @@ export default function ResumeWritePage() {
                   className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">기술 스택</label>
+                <input
+                  type="text"
+                  value={currentForm.tech_stack}
+                  onChange={(e) => handleChange("tech_stack", e.target.value)}
+                  placeholder="예: FastAPI, PostgreSQL, React"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                />
+                <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
+              </div>
             </>
-          )}
-
-          {/* 프로젝트 전용 필드 */}
-          {currentForm.block_type === "project" && (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">기술 스택</label>
-              <input
-                type="text"
-                value={currentForm.tech_stack}
-                onChange={(e) => handleChange("tech_stack", e.target.value)}
-                placeholder="예: FastAPI, PostgreSQL, React"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
-              />
-              <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
-            </div>
           )}
 
           {/* 자격증 전용 필드 */}
@@ -307,10 +303,10 @@ export default function ResumeWritePage() {
             </>
           )}
 
-          {/* 포트폴리오 전용 필드 */}
-          {currentForm.block_type === "portfolio" && (
+          {/* 프로젝트 링크 필드 */}
+          {currentForm.block_type === "project" && (
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">포트폴리오 링크</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">프로젝트 링크</label>
               <input
                 type="url"
                 value={currentForm.link_url}
@@ -321,18 +317,51 @@ export default function ResumeWritePage() {
             </div>
           )}
 
-          {/* 경력/프로젝트 링크 필드 */}
-          {(currentForm.block_type === "career" || currentForm.block_type === "project") && (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">링크 URL (선택)</label>
-              <input
-                type="url"
-                value={currentForm.link_url}
-                onChange={(e) => handleChange("link_url", e.target.value)}
-                placeholder="예: https://github.com/username/project"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
-              />
-            </div>
+          {/* 포트폴리오 전용 필드 */}
+          {currentForm.block_type === "portfolio" && (
+            <>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">간단한 설명</label>
+                <textarea
+                  value={currentForm.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  placeholder="예: 웹 서비스 모음"
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">주요 기술</label>
+                <input
+                  type="text"
+                  value={currentForm.tech_stack}
+                  onChange={(e) => handleChange("tech_stack", e.target.value)}
+                  placeholder="예: Python, FastAPI"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                />
+                <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">파일 URL (선택)</label>
+                <input
+                  type="url"
+                  value={currentForm.file_url}
+                  onChange={(e) => handleChange("file_url", e.target.value)}
+                  placeholder="예: https://example.com/portfolio.pdf"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">포트폴리오 링크</label>
+                <input
+                  type="url"
+                  value={currentForm.link_url}
+                  onChange={(e) => handleChange("link_url", e.target.value)}
+                  placeholder="예: https://github.com/username/project"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                />
+              </div>
+            </>
           )}
         </div>
 

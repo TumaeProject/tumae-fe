@@ -33,6 +33,8 @@ export default function ResumePage() {
   const [editForm, setEditForm] = useState<Partial<ResumeBlock>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deletingBlockId, setDeletingBlockId] = useState<number | null>(null);
+  const [blockToDelete, setBlockToDelete] = useState<ResumeBlock | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -219,6 +221,119 @@ export default function ResumePage() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // 이력서 블록 삭제 확인 모달 열기
+  const handleDeleteClick = (block: ResumeBlock) => {
+    setBlockToDelete(block);
+  };
+
+  // 이력서 블록 삭제
+  const handleDeleteBlock = async () => {
+    if (!userId || !blockToDelete) {
+      setError("사용자 정보를 찾을 수 없습니다.");
+      return;
+    }
+
+    setDeletingBlockId(blockToDelete.id);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const accessToken = localStorage.getItem("access_token");
+      
+      if (!accessToken) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      console.log("이력서 블록 삭제 요청:", {
+        blockId: blockToDelete.id,
+        userId,
+      });
+
+      const response = await fetch(`/api/resume/block/${blockToDelete.id}?current_user_id=${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      console.log("이력서 블록 삭제 응답:", {
+        status: response.status,
+        data,
+      });
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.detail || "이력서 블록을 삭제하는데 실패했습니다.");
+      }
+
+      // 성공 시 목록 새로고침
+      const fetchResume = async () => {
+        const accessToken = localStorage.getItem("access_token");
+        const response = await fetch(`/api/resume/${userId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          },
+        });
+
+        const data = await response.json();
+        if (response.ok && data.message === "SUCCESS" && data.data) {
+          if (typeof data.data === "object" && !Array.isArray(data.data)) {
+            const allBlocks: ResumeBlock[] = [];
+            if (Array.isArray(data.data.career)) {
+              allBlocks.push(...data.data.career.map((block: any) => ({
+                ...block,
+                block_type: "career",
+                created_at: block.created_at || new Date().toISOString(),
+              })));
+            }
+            if (Array.isArray(data.data.project)) {
+              allBlocks.push(...data.data.project.map((block: any) => ({
+                ...block,
+                block_type: "project",
+                created_at: block.created_at || new Date().toISOString(),
+              })));
+            }
+            if (Array.isArray(data.data.certificate)) {
+              allBlocks.push(...data.data.certificate.map((block: any) => ({
+                ...block,
+                block_type: "certificate",
+                created_at: block.created_at || new Date().toISOString(),
+              })));
+            }
+            if (Array.isArray(data.data.portfolio)) {
+              allBlocks.push(...data.data.portfolio.map((block: any) => ({
+                ...block,
+                block_type: "portfolio",
+                created_at: block.created_at || new Date().toISOString(),
+              })));
+            }
+            setResumeBlocks(allBlocks);
+          } else if (Array.isArray(data.data)) {
+            setResumeBlocks(data.data);
+          }
+        }
+      };
+
+      await fetchResume();
+      setSuccessMessage("이력서 블록이 성공적으로 삭제되었습니다.");
+      
+      // 성공 메시지 표시 후 초기화
+      setBlockToDelete(null);
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 2000);
+    } catch (err) {
+      console.error("이력서 삭제 오류:", err);
+      setError(err instanceof Error ? err.message : "이력서를 삭제하는데 실패했습니다.");
+    } finally {
+      setDeletingBlockId(null);
+    }
   };
 
   // 이력서 블록 수정
@@ -475,28 +590,39 @@ export default function ResumePage() {
                           <p className="text-sm font-medium text-gray-600">{block.role}</p>
                         )}
                       </div>
-                      <button
-                        onClick={() => {
-                          setEditingBlock(block);
-                          setEditForm({
-                            title: block.title || "",
-                            period: block.period || "",
-                            role: block.role || "",
-                            description: block.description || "",
-                            tech_stack: block.tech_stack || "",
-                            issuer: block.issuer || "",
-                            acquired_at: block.acquired_at || "",
-                            file_url: block.file_url || "",
-                            link_url: block.link_url || "",
-                          });
-                        }}
-                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-[#8055e1] hover:bg-[#8055e1]/5 hover:text-[#8055e1]"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        수정
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingBlock(block);
+                            setEditForm({
+                              title: block.title || "",
+                              period: block.period || "",
+                              role: block.role || "",
+                              description: block.description || "",
+                              tech_stack: block.tech_stack || "",
+                              issuer: block.issuer || "",
+                              acquired_at: block.acquired_at || "",
+                              file_url: block.file_url || "",
+                              link_url: block.link_url || "",
+                            });
+                          }}
+                          className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-[#8055e1] hover:bg-[#8055e1]/5 hover:text-[#8055e1]"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          수정
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(block)}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:border-red-400 hover:bg-red-50"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          삭제
+                        </button>
+                      </div>
                     </div>
 
                     {/* 본문 */}
@@ -737,21 +863,31 @@ export default function ResumePage() {
                       className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
                     />
                   </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">기술 스택</label>
+                    <input
+                      type="text"
+                      value={editForm.tech_stack || ""}
+                      onChange={(e) => setEditForm({ ...editForm, tech_stack: e.target.value })}
+                      placeholder="예: FastAPI, PostgreSQL, React"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
+                  </div>
                 </>
               )}
 
-              {/* 프로젝트 전용 필드 */}
+              {/* 프로젝트 링크 필드 */}
               {editingBlock.block_type === "project" && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">기술 스택</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">프로젝트 링크</label>
                   <input
-                    type="text"
-                    value={editForm.tech_stack || ""}
-                    onChange={(e) => setEditForm({ ...editForm, tech_stack: e.target.value })}
-                    placeholder="예: FastAPI, PostgreSQL, React"
+                    type="url"
+                    value={editForm.link_url || ""}
+                    onChange={(e) => setEditForm({ ...editForm, link_url: e.target.value })}
+                    placeholder="예: https://github.com/username/project"
                     className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
                   />
-                  <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
                 </div>
               )}
 
@@ -792,22 +928,55 @@ export default function ResumePage() {
 
               {/* 포트폴리오 전용 필드 */}
               {editingBlock.block_type === "portfolio" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">포트폴리오 링크</label>
-                  <input
-                    type="url"
-                    value={editForm.link_url || ""}
-                    onChange={(e) => setEditForm({ ...editForm, link_url: e.target.value })}
-                    placeholder="예: https://github.com/username/project"
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">간단한 설명</label>
+                    <textarea
+                      value={editForm.description || ""}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      placeholder="예: 웹 서비스 모음"
+                      rows={4}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">주요 기술</label>
+                    <input
+                      type="text"
+                      value={editForm.tech_stack || ""}
+                      onChange={(e) => setEditForm({ ...editForm, tech_stack: e.target.value })}
+                      placeholder="예: Python, FastAPI"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">쉼표로 구분하여 입력해주세요</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">파일 URL (선택)</label>
+                    <input
+                      type="url"
+                      value={editForm.file_url || ""}
+                      onChange={(e) => setEditForm({ ...editForm, file_url: e.target.value })}
+                      placeholder="예: https://example.com/portfolio.pdf"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">포트폴리오 링크</label>
+                    <input
+                      type="url"
+                      value={editForm.link_url || ""}
+                      onChange={(e) => setEditForm({ ...editForm, link_url: e.target.value })}
+                      placeholder="예: https://github.com/username/project"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-[#8055e1] focus:outline-none focus:ring-2 focus:ring-[#8055e1]/20"
+                    />
+                  </div>
+                </>
               )}
 
-              {/* 경력/프로젝트 링크 필드 */}
-              {(editingBlock.block_type === "career" || editingBlock.block_type === "project") && (
+              {/* 프로젝트 링크 필드 */}
+              {editingBlock.block_type === "project" && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">링크 URL (선택)</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">프로젝트 링크</label>
                   <input
                     type="url"
                     value={editForm.link_url || ""}
@@ -835,6 +1004,56 @@ export default function ResumePage() {
                 className="flex-1 rounded-lg bg-[#8055e1] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#6f48d8] disabled:opacity-50"
               >
                 {isSubmitting ? "저장 중..." : "저장하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {blockToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900">이력서 블록 삭제</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  정말로 이 이력서 블록을 삭제하시겠습니까?
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm font-medium text-gray-900 mb-1">{blockToDelete.title || "제목 없음"}</p>
+              <p className="text-xs text-gray-500">{getBlockTypeLabel(blockToDelete.block_type)}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setBlockToDelete(null)}
+                disabled={deletingBlockId === blockToDelete.id}
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeleteBlock}
+                disabled={deletingBlockId === blockToDelete.id}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deletingBlockId === blockToDelete.id ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    삭제 중...
+                  </span>
+                ) : (
+                  "삭제하기"
+                )}
               </button>
             </div>
           </div>
