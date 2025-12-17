@@ -2,6 +2,10 @@
 
 튜터와 학생을 연결하는 매칭 플랫폼입니다. Next.js 16과 React 19를 기반으로 구축되었습니다.
 
+## 🌐 배포 링크
+
+**라이브 데모**: [https://tumae-fe.vercel.app/](https://tumae-fe.vercel.app/)
+
 ## 📋 목차
 
 - [프로젝트 소개](#프로젝트-소개)
@@ -17,7 +21,7 @@
 
 ## 🛠 기술 스택
 
-- **프레임워크**: Next.js 16.0.1 (App Router)
+- **프레임워크**: Next.js 16.0.10 (App Router)
 - **언어**: TypeScript 5
 - **UI 라이브러리**: React 19.2.0
 - **스타일링**: Tailwind CSS 4
