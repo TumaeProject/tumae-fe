@@ -1,8 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import { TutorOnboardingForm } from "@/components/signup/TutorOnboardingForm";
 
-export default function TutorOnboardingPage() {
+function TutorOnboardingContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f1ebff] via-white to-white py-16">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 rounded-3xl bg-white px-10 py-12 shadow-xl">
@@ -18,6 +19,14 @@ export default function TutorOnboardingPage() {
         <TutorOnboardingForm />
       </div>
     </div>
+  );
+}
+
+export default function TutorOnboardingPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <TutorOnboardingContent />
+    </Suspense>
   );
 }
 
